@@ -1,0 +1,6 @@
+.DS_Store
+*.test.js
+build/
+CHANGELOG.md
+lib/mocks
+prebuilds

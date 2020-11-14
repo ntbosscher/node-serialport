@@ -284,7 +284,7 @@ SerialPort.prototype.update = function (options, callback) {
 
 The write operation is non-blocking. When it returns, data might still not have been written to the serial port. See `drain()`.
 
-Some devices, like the Arduino, reset when you open a connection to them. In such cases, immediately writing to the device will cause lost data as they wont be ready to receive the data. This is often worked around by having the Arduino send a "ready" byte that your Node program waits for before writing. You can also often get away with waiting around 400ms.
+Some devices, like the Arduino, reset when you open a connection to them. In such cases, immediately writing to the device will cause lost data as they wont be ]y to receive the data. This is often worked around by having the Arduino send a "ready" byte that your Node program waits for before writing. You can also often get away with waiting around 400ms.
 
 If a port is disconnected during a write, the write will error in addition to the `close` event.
 

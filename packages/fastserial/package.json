@@ -1,5 +1,5 @@
 {
-  "name": "@serialport/bindings",
+  "name": "@serialport/fastserial",
   "version": "9.0.2",
   "main": "lib",
   "keywords": [
@@ -21,9 +21,9 @@
     "node": ">=8.6.0"
   },
   "scripts": {
-    "install": "prebuild-install --tag-prefix @serialport/bindings@ || node-gyp rebuild",
+    "install": "prebuild-install --tag-prefix @serialport/fastserial@ || node-gyp rebuild",
     "lint": "cc --verbose",
-    "prebuild": "prebuild --all --force --strip --verbose --tag-prefix @serialport/bindings@",
+    "prebuild": "prebuild --all --force --strip --verbose --tag-prefix @serialport/fastserial@",
     "rebuild": "HOME=~/.electron-gyp node-gyp rebuild --target=8.5.2 --arch=x64 --dist-url=https://electronjs.org/headers"
   },
   "publishConfig": {

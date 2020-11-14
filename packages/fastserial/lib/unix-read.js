@@ -11,7 +11,7 @@ const readable = binding => {
   })
 }
 
-const unixRead = async ({ binding, buffer, offset, length, fsReadAsync = readAsync }) => {
+const unixRead = async ({ binding, buffer, offset, length }) => {
   logger('Starting read')
   if (!binding.isOpen) {
     const err = new Error('Port is not open')
@@ -21,10 +21,10 @@ const unixRead = async ({ binding, buffer, offset, length, fsReadAsync = readAsy
 
   try {
     const tStart = new Date().getTime()
-    const { bytesRead } = await fsReadAsync(binding.fd, buffer, offset, length, null)
+    const { bytesRead } = await asyncRead(binding.fd, buffer, offset, length)
     console.log('read took', new Date().getTime() - tStart)
     if (bytesRead === 0) {
-      return unixRead({ binding, buffer, offset, length, fsReadAsync })
+      return unixRead({ binding, buffer, offset, length })
     }
     logger('Finished read', bytesRead, 'bytes')
     return { bytesRead, buffer }
