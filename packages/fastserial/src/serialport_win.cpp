@@ -8,7 +8,11 @@
 #include <Setupapi.h>
 #include <initguid.h>
 #include <devpkey.h>
+#include <ctime>
 #include <devguid.h>
+#include <fstream>
+#include <chrono>
+#include <thread>
 #pragma comment(lib, "setupapi.lib")
 
 #define ARRAY_SIZE(arr)     (sizeof(arr)/sizeof(arr[0]))
@@ -397,6 +401,14 @@ void EIO_AfterWrite(uv_async_t* req) {
   delete baton;
 }
 
+std::ofstream logger() {
+  return std::ofstream("C:\\Users\\Nate\\AppData\\Local\\console.log.txt", std::ofstream::app);
+}
+
+int currentMs() {
+  return clock() / (CLOCKS_PER_SEC / 1000);
+}
+
 NAN_METHOD(Read) {
   // file descriptor
   if (!info[0]->IsInt32()) {
@@ -447,12 +459,67 @@ NAN_METHOD(Read) {
   baton->callback.Reset(info[4].As<v8::Function>());
   baton->complete = false;
 
+  auto out = logger();
+  out << currentMs() << " read method called (need=" << bytesToRead << ")\n";
+  out.close();
+
   uv_async_t* async = new uv_async_t;
   uv_async_init(uv_default_loop(), async, EIO_AfterRead);
   async->data = baton;
   // ReadFileEx requires a thread that can block. Create a new thread to
   // run the read operation, saving the handle so it can be deallocated later.
   baton->hThread = CreateThread(NULL, 0, ReadThread, async, 0, NULL);
+}
+
+int ReadHandleNonBlocking(ReadBaton *baton) {
+
+  OVERLAPPED* ov = new OVERLAPPED;
+
+    // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
+    // return immediately no matter how much data is available.
+    COMMTIMEOUTS commTimeouts = {};
+    commTimeouts.ReadIntervalTimeout = MAXDWORD;
+    if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
+      int lastError = GetLastError();
+      ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
+      baton->complete = true;
+      return 0;
+    }
+
+    // Store additional data after whatever data has already been read.
+    char* offsetPtr = baton->bufferData + baton->offset;
+
+    // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
+    memset(ov, 0, sizeof(OVERLAPPED));
+    ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    DWORD bytesTransferred = 0;
+
+    if (!ReadFile(int2handle(baton->fd), offsetPtr, baton->bytesToRead, &bytesTransferred, ov)) {
+      int errorCode = GetLastError();
+
+      if (errorCode != ERROR_IO_PENDING) {
+        ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, baton->errorString);
+        baton->complete = true;
+        CloseHandle(ov->hEvent);
+        return 0;
+      }
+
+      if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, TRUE)) {
+        int lastError = GetLastError();
+        ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, baton->errorString);
+        baton->complete = true;
+        CloseHandle(ov->hEvent);
+        return 0;
+      }
+    }
+    
+    CloseHandle(ov->hEvent);
+
+    baton->bytesToRead -= bytesTransferred;
+    baton->bytesRead += bytesTransferred;
+    baton->offset += bytesTransferred;
+    baton->complete = baton->bytesToRead == 0;
+    return bytesTransferred;
 }
 
 void __stdcall ReadIOCompletion(DWORD errorCode, DWORD bytesTransferred, OVERLAPPED* ov) {
@@ -471,90 +538,96 @@ void __stdcall ReadIOCompletion(DWORD errorCode, DWORD bytesTransferred, OVERLAP
     baton->complete = true;
     return;
   }
+
   if (bytesTransferred) {
     baton->bytesToRead -= bytesTransferred;
     baton->bytesRead += bytesTransferred;
     baton->offset += bytesTransferred;
   }
 
-  // ReadFileEx and GetOverlappedResult retrieved only 1 byte. Read any additional data in the input
-  // buffer. Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
-  // return immediately no matter how much data is available.
-  COMMTIMEOUTS commTimeouts = {};
-  commTimeouts.ReadIntervalTimeout = MAXDWORD;
-  if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
-    lastError = GetLastError();
-    ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
-    baton->complete = true;
-    return;
-  }
+  auto tLastData = clock();
 
-  // Store additional data after whatever data has already been read.
-  char* offsetPtr = baton->bufferData + baton->offset;
+  while(baton->bytesToRead > 0) {
 
-  // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
-  memset(ov, 0, sizeof(OVERLAPPED));
-  ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-  if (!ReadFile(int2handle(baton->fd), offsetPtr, baton->bytesToRead, &bytesTransferred, ov)) {
-    errorCode = GetLastError();
-
-    if (errorCode != ERROR_IO_PENDING) {
-      ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, baton->errorString);
-      baton->complete = true;
-      CloseHandle(ov->hEvent);
-      return;
+    int bytesTransferred = ReadHandleNonBlocking(baton);
+    if(baton->complete) {
+      break;
+    }
+    
+    if(bytesTransferred > 0) {
+      tLastData = clock();
+      continue;
     }
 
-    if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, TRUE)) {
-      lastError = GetLastError();
-      ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, baton->errorString);
-      baton->complete = true;
-      CloseHandle(ov->hEvent);
-      return;
+    auto msSinceLastData = (clock() - tLastData) / (CLOCKS_PER_SEC / 1000);
+    if(msSinceLastData > 20) {
+      break;
     }
-  }
-  CloseHandle(ov->hEvent);
 
-  baton->bytesToRead -= bytesTransferred;
-  baton->bytesRead += bytesTransferred;
-  baton->complete = true;
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
 }
 
-DWORD __stdcall ReadThread(LPVOID param) {
-  uv_async_t* async = static_cast<uv_async_t*>(param);
-  ReadBaton* baton = static_cast<ReadBaton*>(async->data);
+void WaitForRead(ReadBaton *baton) {
   DWORD lastError;
 
-  OVERLAPPED* ov = new OVERLAPPED;
-  memset(ov, 0, sizeof(OVERLAPPED));
-  ov->hEvent = static_cast<void*>(baton);
-
-  while (!baton->complete) {
-    // Reset the read timeout to 0, so that it will block until more data arrives.
+  // Reset the read timeout to 0, so that it will block until more data arrives.
     COMMTIMEOUTS commTimeouts = {};
     commTimeouts.ReadIntervalTimeout = 0;
     if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
       lastError = GetLastError();
       ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
-      break;
+      baton->complete = true;
+      return;
     }
+
+    OVERLAPPED* ov = new OVERLAPPED;
+    memset(ov, 0, sizeof(OVERLAPPED));
+    ov->hEvent = static_cast<void*>(baton);
+
     // ReadFileEx doesn't use overlapped's hEvent, so it is reserved for user data.
     ov->hEvent = static_cast<HANDLE>(baton);
     char* offsetPtr = baton->bufferData + baton->offset;
     // ReadFileEx requires calling GetLastError even upon success. Clear the error beforehand.
     SetLastError(0);
+
     // Only read 1 byte, so that the callback will be triggered once any data arrives.
     ReadFileEx(int2handle(baton->fd), offsetPtr, 1, ov, ReadIOCompletion);
+
     // Error codes when call is successful, such as ERROR_MORE_DATA.
     lastError = GetLastError();
+
     if (lastError != ERROR_SUCCESS) {
       ErrorCodeToString("Reading from COM port (ReadFileEx)", lastError, baton->errorString);
-      break;
+      baton->complete = true;
+      return;
     }
+
     // IOCompletion routine is only called once this thread is in an alertable wait state.
     SleepEx(INFINITE, TRUE);
+    delete ov;
+}
+
+DWORD __stdcall ReadThread(LPVOID param) {
+  uv_async_t* async = static_cast<uv_async_t*>(param);
+  ReadBaton* baton = static_cast<ReadBaton*>(async->data);
+
+  auto out = logger();
+  int start = currentMs();
+  out << currentMs() << " started read thread\n";
+  
+  while (!baton->complete) {
+
+    WaitForRead(baton);
+
+    if(baton->bytesToRead == 0) {
+      baton->complete = true;
+    }
   }
-  delete ov;
+
+  out << currentMs() << " ReadThread: done, took " << (currentMs() - start) << "ms\n"; 
+  out.close();
+
   // Signal the main thread to run the callback.
   uv_async_send(async);
   ExitThread(0);

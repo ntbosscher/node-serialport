@@ -65,10 +65,10 @@ class WindowsBinding extends AbstractBinding {
   }
 
   async read(buffer, offset, length) {
-    await super.read(buffer, offset, length)
+    await super.read(buffer, offset, length);
     try {
       const bytesRead = await asyncRead(this.fd, buffer, offset, length)
-      return { bytesRead, buffer }
+      return buffer.slice(0, bytesRead);
     } catch (err) {
       if (!this.isOpen) {
         err.canceled = true
