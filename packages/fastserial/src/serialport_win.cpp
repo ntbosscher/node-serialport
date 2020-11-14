@@ -471,6 +471,62 @@ NAN_METHOD(Read) {
   baton->hThread = CreateThread(NULL, 0, ReadThread, async, 0, NULL);
 }
 
+int ReadHandle(ReadBaton *baton, bool blocking) {
+    OVERLAPPED* ov = new OVERLAPPED;
+
+    // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
+    // return immediately no matter how much data is available.
+    COMMTIMEOUTS commTimeouts = {};
+    
+    if(blocking) {
+      commTimeouts.ReadIntervalTimeout = 0;
+    } else {
+      commTimeouts.ReadIntervalTimeout = MAXDWORD;
+    }
+
+    if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
+      int lastError = GetLastError();
+      ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
+      baton->complete = true;
+      return 0;
+    }
+
+    // Store additional data after whatever data has already been read.
+    char* offsetPtr = baton->bufferData + baton->offset;
+
+    // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
+    memset(ov, 0, sizeof(OVERLAPPED));
+    ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    DWORD bytesTransferred = 0;
+
+    if (!ReadFile(int2handle(baton->fd), offsetPtr, baton->bytesToRead, &bytesTransferred, ov)) {
+      int errorCode = GetLastError();
+
+      if (errorCode != ERROR_IO_PENDING) {
+        ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, baton->errorString);
+        baton->complete = true;
+        CloseHandle(ov->hEvent);
+        return 0;
+      }
+
+      if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, TRUE)) {
+        int lastError = GetLastError();
+        ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, baton->errorString);
+        baton->complete = true;
+        CloseHandle(ov->hEvent);
+        return 0;
+      }
+    }
+    
+    CloseHandle(ov->hEvent);
+
+    baton->bytesToRead -= bytesTransferred;
+    baton->bytesRead += bytesTransferred;
+    baton->offset += bytesTransferred;
+    baton->complete = baton->bytesToRead == 0;
+    return bytesTransferred;
+}
+
 int ReadHandleNonBlocking(ReadBaton *baton) {
 
   OVERLAPPED* ov = new OVERLAPPED;
@@ -618,7 +674,7 @@ DWORD __stdcall ReadThread(LPVOID param) {
   
   while (!baton->complete) {
 
-    WaitForRead(baton);
+    ReadHandle(baton, true);
 
     if(baton->bytesToRead == 0) {
       baton->complete = true;

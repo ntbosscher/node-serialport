@@ -90,7 +90,6 @@ class FastSerial {
     }
 
     read(nBytes) {
-        console.log("internal-read: ", nBytes);
         return this.binding.read(Buffer.alloc(nBytes), 0, nBytes);
     }
 
