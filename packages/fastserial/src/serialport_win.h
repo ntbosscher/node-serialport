@@ -12,6 +12,7 @@
 struct WriteBaton : public Nan::AsyncResource {
   WriteBaton() : AsyncResource("node-serialport:WriteBaton"), bufferData(), errorString() {}
   int fd = 0;
+  int timeout = -1;
   char* bufferData = nullptr;
   size_t bufferLength = 0;
   size_t offset = 0;
@@ -33,6 +34,7 @@ DWORD __stdcall WriteThread(LPVOID param);
 struct ReadBaton : public Nan::AsyncResource {
   ReadBaton() : AsyncResource("node-serialport:ReadBaton"), errorString() {}
   int fd = 0;
+  int timeout = -1;
   char* bufferData = nullptr;
   size_t bufferLength = 0;
   size_t bytesRead = 0;
@@ -70,5 +72,7 @@ struct ListBaton : public Nan::AsyncResource {
   std::list<ListResultItem*> results;
   char errorString[ERROR_STRING_SIZE] = "";
 };
+
+void internalInit();
 
 #endif  // PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_

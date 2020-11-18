@@ -473,6 +473,7 @@ NAN_MODULE_INIT(init) {
   #endif
 
   #ifdef WIN32
+  internalInit();
   Nan::SetMethod(target, "write", Write);
   Nan::SetMethod(target, "read", Read);
   Nan::SetMethod(target, "list", List);

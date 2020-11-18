@@ -89,6 +89,10 @@ class FastSerial {
         return this.binding.close();
     }
 
+    setTimeout(ms) {
+        this.binding.timeout = ms;
+    }
+
     read(nBytes) {
         return this.binding.read(Buffer.alloc(nBytes), 0, nBytes);
     }

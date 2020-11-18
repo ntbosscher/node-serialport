@@ -20,6 +20,7 @@ const { wrapWithHiddenComName } = require('./legacy')
  * The Windows binding layer
  */
 class WindowsBinding extends AbstractBinding {
+
   static async list() {
     const ports = await asyncList()
     // Grab the serial number from the pnp id
@@ -40,7 +41,10 @@ class WindowsBinding extends AbstractBinding {
   }
 
   constructor(opt = {}) {
-    super(opt)
+    super(opt);
+
+    this.timeout = opt.timeout === undefined ? 10000 : opt.timeout;
+
     this.bindingOptions = { ...opt.bindingOptions }
     this.fd = null
     this.writeOperation = null
@@ -67,7 +71,7 @@ class WindowsBinding extends AbstractBinding {
   async read(buffer, offset, length) {
     await super.read(buffer, offset, length);
     try {
-      const bytesRead = await asyncRead(this.fd, buffer, offset, length)
+      const bytesRead = await asyncRead(this.fd, buffer, offset, length, this.timeout)
       return buffer.slice(0, bytesRead);
     } catch (err) {
       if (!this.isOpen) {
@@ -82,9 +86,14 @@ class WindowsBinding extends AbstractBinding {
       if (buffer.length === 0) {
         return
       }
-      await asyncWrite(this.fd, buffer)
-      this.writeOperation = null
-    })
+
+      try {
+        await asyncWrite(this.fd, buffer, this.timeout);
+      } catch (e) {
+        console.log("err", err);
+      }
+    });
+
     return this.writeOperation
   }
 
