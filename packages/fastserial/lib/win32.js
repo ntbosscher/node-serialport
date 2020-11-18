@@ -1,7 +1,27 @@
 const binding = require('bindings')('bindings.node')
 const AbstractBinding = require('@serialport/binding-abstract')
-const { promisify } = require('util')
-const serialNumParser = require('./win32-sn-parser')
+const serialNumParser = require('./win32-sn-parser');
+
+function promisify(fx) {
+
+  return function(a,b,c) {
+    
+    const args = [...arguments];
+
+    return new Promise((resolve, reject) => {
+      args.push((err, obj) => {
+        if(err === null) {
+          resolve(obj);
+          return;
+        }
+
+        reject(err);
+      });
+
+      fx.call(null, ...args);
+    });
+  }
+}
 
 const asyncList = promisify(binding.list)
 const asyncOpen = promisify(binding.open)
@@ -22,7 +42,9 @@ const { wrapWithHiddenComName } = require('./legacy')
 class WindowsBinding extends AbstractBinding {
 
   static async list() {
-    const ports = await asyncList()
+
+    const ports = await asyncList();
+
     // Grab the serial number from the pnp id
     return wrapWithHiddenComName(
       ports.map(port => {
@@ -77,6 +99,7 @@ class WindowsBinding extends AbstractBinding {
       if (!this.isOpen) {
         err.canceled = true
       }
+
       throw err
     }
   }

@@ -40,6 +40,19 @@ std::ofstream logger(std::string id) {
     return std::ofstream(fileName, std::ofstream::app);
 }
 
+void send_async(uv_async_t* handle) {
+    auto log = logger("async-errors");
+    log << "called" << "\n";
+    log.flush();
+
+    int err = uv_async_send(handle);
+    if (err == 0) return;
+    
+    
+    log << uv_strerror(err) << "\n";
+    log.close();
+}
+
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
 
     auto log = logger("error-code");
@@ -448,7 +461,7 @@ public:
             out.flush();
 
             // Signal the main thread to run the callback.
-            uv_async_send(async);
+            send_async(async);
         }
     }
 };
@@ -618,7 +631,7 @@ public:
             out.flush();
 
             // Signal the main thread to run the callback.
-            uv_async_send(async);
+            send_async(async);
         }
     }
 };
@@ -736,22 +749,6 @@ char *copySubstring(char *someString, int n) {
   strncpy_s(new_, n + 1, someString, n);
   new_[n] = '\0';
   return new_;
-}
-
-NAN_METHOD(List) {
-  // callback
-  if (!info[0]->IsFunction()) {
-    Nan::ThrowTypeError("First argument must be a function");
-    return;
-  }
-
-  ListBaton* baton = new ListBaton();
-  snprintf(baton->errorString, sizeof(baton->errorString), "");
-  baton->callback.Reset(info[0].As<v8::Function>());
-
-  uv_work_t* req = new uv_work_t();
-  req->data = baton;
-  uv_queue_work(uv_default_loop(), req, EIO_List, (uv_after_work_cb)EIO_AfterList);
 }
 
 // It's possible that the s/n is a construct and not the s/n of the parent USB
@@ -910,113 +907,6 @@ void getSerialNumber(const char *vid,
   return;
 }
 
-void EIO_List(uv_work_t* req) {
-  ListBaton* data = static_cast<ListBaton*>(req->data);
-
-  GUID *guidDev = (GUID*)& GUID_DEVCLASS_PORTS;  // NOLINT
-  HDEVINFO hDevInfo = SetupDiGetClassDevs(guidDev, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE);
-  SP_DEVINFO_DATA deviceInfoData;
-
-  int memberIndex = 0;
-  DWORD dwSize, dwPropertyRegDataType;
-  char szBuffer[MAX_BUFFER_SIZE];
-  char *pnpId;
-  char *vendorId;
-  char *productId;
-  char *name;
-  char *manufacturer;
-  char *locationId;
-  char serialNumber[MAX_REGISTRY_KEY_SIZE];
-  bool isCom;
-  while (true) {
-    pnpId = NULL;
-    vendorId = NULL;
-    productId = NULL;
-    name = NULL;
-    manufacturer = NULL;
-    locationId = NULL;
-
-    ZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
-    deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-    if (SetupDiEnumDeviceInfo(hDevInfo, memberIndex, &deviceInfoData) == FALSE) {
-      if (GetLastError() == ERROR_NO_MORE_ITEMS) {
-        break;
-      }
-    }
-
-    dwSize = sizeof(szBuffer);
-    SetupDiGetDeviceInstanceId(hDevInfo, &deviceInfoData, szBuffer, dwSize, &dwSize);
-    szBuffer[dwSize] = '\0';
-    pnpId = strdup(szBuffer);
-
-    vendorId = strstr(szBuffer, "VID_");
-    if (vendorId) {
-      vendorId += 4;
-      vendorId = copySubstring(vendorId, 4);
-    }
-    productId = strstr(szBuffer, "PID_");
-    if (productId) {
-      productId += 4;
-      productId = copySubstring(productId, 4);
-    }
-
-    getSerialNumber(vendorId, productId, hDevInfo, deviceInfoData, MAX_REGISTRY_KEY_SIZE, serialNumber);
-
-    if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
-                                         SPDRP_LOCATION_INFORMATION, &dwPropertyRegDataType,
-                                         reinterpret_cast<BYTE*>(szBuffer),
-                                         sizeof(szBuffer), &dwSize)) {
-      locationId = strdup(szBuffer);
-    }
-    if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
-                                         SPDRP_MFG, &dwPropertyRegDataType,
-                                         reinterpret_cast<BYTE*>(szBuffer),
-                                         sizeof(szBuffer), &dwSize)) {
-      manufacturer = strdup(szBuffer);
-    }
-
-    HKEY hkey = SetupDiOpenDevRegKey(hDevInfo, &deviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-    if (hkey != INVALID_HANDLE_VALUE) {
-      dwSize = sizeof(szBuffer);
-      if (RegQueryValueEx(hkey, "PortName", NULL, NULL, (LPBYTE)&szBuffer, &dwSize) == ERROR_SUCCESS) {
-        szBuffer[dwSize] = '\0';
-        name = strdup(szBuffer);
-        isCom = strstr(szBuffer, "COM") != NULL;
-      }
-    }
-    if (isCom) {
-      ListResultItem* resultItem = new ListResultItem();
-      resultItem->path = name;
-      resultItem->manufacturer = manufacturer;
-      resultItem->pnpId = pnpId;
-      if (vendorId) {
-        resultItem->vendorId = vendorId;
-      }
-      if (productId) {
-        resultItem->productId = productId;
-      }
-      resultItem->serialNumber = serialNumber;
-      if (locationId) {
-        resultItem->locationId = locationId;
-      }
-      data->results.push_back(resultItem);
-    }
-    free(pnpId);
-    free(vendorId);
-    free(productId);
-    free(locationId);
-    free(manufacturer);
-    free(name);
-
-    RegCloseKey(hkey);
-    memberIndex++;
-  }
-  if (hDevInfo) {
-    SetupDiDestroyDeviceInfoList(hDevInfo);
-  }
-}
-
 void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *value) {
   v8::Local<v8::String> v8key = Nan::New<v8::String>(key).ToLocalChecked();
   if (strlen(value) > 0) {
@@ -1026,19 +916,25 @@ void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *valu
   }
 }
 
-void EIO_AfterList(uv_work_t* req) {
-  Nan::HandleScope scope;
+void EIO_AfterList(uv_async_t* req) {
 
+  Nan::HandleScope scope;
   ListBaton* data = static_cast<ListBaton*>(req->data);
+  uv_close(reinterpret_cast<uv_handle_t*>(req), AsyncCloseCallback);
 
   v8::Local<v8::Value> argv[2];
+  
   if (data->errorString[0]) {
+    
     argv[0] = v8::Exception::Error(Nan::New<v8::String>(data->errorString).ToLocalChecked());
     argv[1] = Nan::Undefined();
+
   } else {
+
     v8::Local<v8::Array> results = Nan::New<v8::Array>();
     int i = 0;
     for (std::list<ListResultItem*>::iterator it = data->results.begin(); it != data->results.end(); ++it, i++) {
+
       v8::Local<v8::Object> item = Nan::New<v8::Object>();
 
       setIfNotEmpty(item, "path", (*it)->path.c_str());
@@ -1051,16 +947,205 @@ void EIO_AfterList(uv_work_t* req) {
 
       Nan::Set(results, i, item);
     }
+
     argv[0] = Nan::Null();
     argv[1] = results;
   }
+
   data->callback.Call(2, argv, data);
 
   for (std::list<ListResultItem*>::iterator it = data->results.begin(); it != data->results.end(); ++it) {
     delete *it;
   }
+
   delete data;
-  delete req;
+}
+
+class Lister : public Worker {
+    void list(ListBaton* data) {
+
+        GUID* guidDev = (GUID*)&GUID_DEVCLASS_PORTS;  // NOLINT
+        HDEVINFO hDevInfo = SetupDiGetClassDevs(guidDev, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE);
+        SP_DEVINFO_DATA deviceInfoData;
+
+        int memberIndex = 0;
+
+        DWORD dwSize, dwPropertyRegDataType;
+        char szBuffer[MAX_BUFFER_SIZE];
+        char* pnpId;
+        char* vendorId;
+        char* productId;
+        char* name;
+        char* manufacturer;
+        char* locationId;
+        char serialNumber[MAX_REGISTRY_KEY_SIZE];
+        bool isCom;
+
+        auto out = logger("device-list");
+
+        while (true) {
+            pnpId = NULL;
+            vendorId = NULL;
+            productId = NULL;
+            name = NULL;
+            manufacturer = NULL;
+            locationId = NULL;
+
+            out << "loop-start " << memberIndex << "\n";
+            out.flush();
+
+            ZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
+            deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+            if (SetupDiEnumDeviceInfo(hDevInfo, memberIndex, &deviceInfoData) == FALSE) {
+                auto errorNo = GetLastError();
+
+                out << "SetupDiEnumDeviceInfo error " << errorNo << "\n";
+                out.flush();
+
+                if (errorNo == ERROR_NO_MORE_ITEMS) {
+                    break;
+                }
+
+                ErrorCodeToString("Getting device info", errorNo, data->errorString);
+                break;
+            }
+
+            out << "SetupDiEnumDeviceInfo success\n";
+            out.flush();
+
+            dwSize = sizeof(szBuffer);
+            SetupDiGetDeviceInstanceId(hDevInfo, &deviceInfoData, szBuffer, dwSize, &dwSize);
+            szBuffer[dwSize] = '\0';
+            pnpId = strdup(szBuffer);
+
+            out << "SetupDiGetDeviceInstanceId success\n";
+            out.flush();
+
+            vendorId = strstr(szBuffer, "VID_");
+            if (vendorId) {
+                vendorId += 4;
+                vendorId = copySubstring(vendorId, 4);
+            }
+            productId = strstr(szBuffer, "PID_");
+            if (productId) {
+                productId += 4;
+                productId = copySubstring(productId, 4);
+            }
+
+            getSerialNumber(vendorId, productId, hDevInfo, deviceInfoData, MAX_REGISTRY_KEY_SIZE, serialNumber);
+
+            out << "getSerialNumber success\n";
+            out.flush();
+
+            if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
+                SPDRP_LOCATION_INFORMATION, &dwPropertyRegDataType,
+                reinterpret_cast<BYTE*>(szBuffer),
+                sizeof(szBuffer), &dwSize)) {
+                locationId = strdup(szBuffer);
+            }
+
+            out << "SetupDiGetDeviceRegistryProperty success\n";
+            out.flush();
+
+            if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
+                SPDRP_MFG, &dwPropertyRegDataType,
+                reinterpret_cast<BYTE*>(szBuffer),
+                sizeof(szBuffer), &dwSize)) {
+                manufacturer = strdup(szBuffer);
+            }
+
+            out << "SetupDiGetDeviceRegistryProperty success\n";
+            out.flush();
+
+            HKEY hkey = SetupDiOpenDevRegKey(hDevInfo, &deviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
+
+            if (hkey != INVALID_HANDLE_VALUE) {
+                dwSize = sizeof(szBuffer);
+                if (RegQueryValueEx(hkey, "PortName", NULL, NULL, (LPBYTE)&szBuffer, &dwSize) == ERROR_SUCCESS) {
+                    szBuffer[dwSize] = '\0';
+                    name = strdup(szBuffer);
+                    isCom = strstr(szBuffer, "COM") != NULL;
+                }
+            }
+
+            out << "SetupDiOpenDevRegKey done\n";
+            out.flush();
+
+            if (isCom) {
+                ListResultItem* resultItem = new ListResultItem();
+                resultItem->path = name;
+                resultItem->manufacturer = manufacturer;
+                resultItem->pnpId = pnpId;
+                if (vendorId) {
+                    resultItem->vendorId = vendorId;
+                }
+                if (productId) {
+                    resultItem->productId = productId;
+                }
+                resultItem->serialNumber = serialNumber;
+                if (locationId) {
+                    resultItem->locationId = locationId;
+                }
+                data->results.push_back(resultItem);
+            }
+
+            free(pnpId);
+            free(vendorId);
+            free(productId);
+            free(locationId);
+            free(manufacturer);
+            free(name);
+
+            RegCloseKey(hkey);
+            memberIndex++;
+
+            out << "loop-end\n";
+            out.flush();
+        }
+
+        if (hDevInfo) {
+            out << "destroy-list\n";
+            out.flush();
+            SetupDiDestroyDeviceInfoList(hDevInfo);
+        }
+
+        out << "return\n";
+        out.flush();
+    }
+public:
+    void thread() {
+        while (true) {
+            auto async = getNextJob();
+            ListBaton* baton = static_cast<ListBaton*>(async->data);
+
+            list(baton);
+
+            // Signal the main thread to run the callback.
+            send_async(async);
+        }
+    }
+};
+
+Lister* lister;
+
+NAN_METHOD(List) {
+    // callback
+    if (!info[0]->IsFunction()) {
+        Nan::ThrowTypeError("First argument must be a function");
+        return;
+    }
+
+    ListBaton* baton = new ListBaton();
+    snprintf(baton->errorString, sizeof(baton->errorString), "");
+    baton->callback.Reset(info[0].As<v8::Function>());
+
+    uv_async_t* async = new uv_async_t;
+    uv_async_init(uv_default_loop(), async, EIO_AfterList);
+    
+    async->data = baton;
+
+    lister->addJob(async);
 }
 
 
@@ -1092,5 +1177,10 @@ void internalInit() {
     reader = new Reader();
     for (int i = 0; i < 1; i++) {
         std::thread t(&Reader::thread, reader);
+    }
+
+    lister = new Lister();
+    for (int i = 0; i < 1; i++) {
+        std::thread t(&Lister::thread, lister);
     }
 }

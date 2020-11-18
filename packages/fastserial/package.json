@@ -24,7 +24,7 @@
     "install": "prebuild-install --tag-prefix @serialport/fastserial@ || node-gyp rebuild",
     "lint": "cc --verbose",
     "prebuild": "prebuild --all --force --strip --verbose --tag-prefix @serialport/fastserial@",
-    "rebuild": "node-gyp rebuild --target=8.5.2 --arch=x64 --dist-url=https://electronjs.org/headers"
+    "rebuild": "node-gyp rebuild --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers"
   },
   "publishConfig": {
     "access": "public"

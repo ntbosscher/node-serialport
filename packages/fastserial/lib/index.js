@@ -8,7 +8,7 @@ const STOPBITS = Object.freeze([1, 1.5, 2])
 const PARITY = Object.freeze(['none', 'even', 'mark', 'odd', 'space'])
 const FLOWCONTROLS = Object.freeze(['xon', 'xoff', 'xany', 'rtscts'])
 
-const defaultSettings = Object.freeze()
+const defaultSettings = Object.freeze();
 
 // const defaultSetFlags = Object.freeze({
 //     brk: false,
@@ -38,6 +38,8 @@ class FastSerial {
     isOpen = false;
 
     binding = new Binding({});
+
+    _queue = [];
 
     constructor(path, options) {
         const settings = { ...this.settings, ...options }
@@ -74,9 +76,39 @@ class FastSerial {
         });
     }
 
+    async runQueue() {
+        if(this._queue.length === 0) {
+            return;
+        }
+
+        const callback = this._queue.shift();
+
+        try {
+            await callback();
+        } catch (e) {
+            // ignore errors here
+        }
+
+        this.runQueue();
+    }
+
+    queue(callback) {
+        return new Promise((resolve, reject) => {
+            this._queue.push(() => {
+                return callback().then(resolve, reject);
+            });
+
+            // only item in the queue
+            if(this._queue.length === 1) this.runQueue();
+        });
+    }
+
     async open() {
+        const tStart = new Date().getTime();
+        console.log("open-start");
         await this.binding.open(this.path, this.settings);
         this.isOpen = true;
+        console.log("open-finished", new Date().getTime() - tStart);
     }
 
     update(options) {
@@ -93,22 +125,37 @@ class FastSerial {
         this.binding.timeout = ms;
     }
 
-    read(nBytes) {
-        return this.binding.read(Buffer.alloc(nBytes), 0, nBytes);
+    async read(nBytes) {
+        return this.queue(async () => {
+            console.log(new Date().getTime(), "internal-read-start:");
+            const i = await this.binding.read(Buffer.alloc(nBytes), 0, nBytes);
+            console.log(new Date().getTime(), "internal-read-end:");
+            return i;
+        });
     }
 
-    write(buf) {
-        if(Array.isArray(buf)) {
-            buf = Buffer.from(buf);
-        }
+    async write(buf) {
+        return this.queue(async () => {
+            if(Array.isArray(buf)) {
+                buf = Buffer.from(buf);
+            }
 
-        console.log("internal-write: ", buf.length);
+            console.log(new Date().getTime(), "internal-write-start: ", buf.length);
+            const i = await this.binding.write(buf);
+            console.log(new Date().getTime(), "internal-write-done: ", buf.length);
 
-        return this.binding.write(buf);
+            return i;
+        });
     }
 
-    static list() {
-        return Binding.list();
+    static async list() {
+        const tStart = new Date().getTime();
+        console.log("list-start");
+
+        const list = await Binding.list();
+
+        console.log("list-end", new Date().getTime() - tStart);
+        return list;
     }
 }
 
