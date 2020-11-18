@@ -13,6 +13,8 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <condition_variable>
+#include <mutex>
 #pragma comment(lib, "setupapi.lib")
 
 #define ARRAY_SIZE(arr)     (sizeof(arr)/sizeof(arr[0]))
@@ -409,68 +411,6 @@ int currentMs() {
   return clock() / (CLOCKS_PER_SEC / 1000);
 }
 
-NAN_METHOD(Read) {
-  // file descriptor
-  if (!info[0]->IsInt32()) {
-    Nan::ThrowTypeError("First argument must be a fd");
-    return;
-  }
-  int fd = Nan::To<int>(info[0]).FromJust();
-
-  // buffer
-  if (!info[1]->IsObject() || !node::Buffer::HasInstance(info[1])) {
-    Nan::ThrowTypeError("Second argument must be a buffer");
-    return;
-  }
-  v8::Local<v8::Object> buffer = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-  size_t bufferLength = node::Buffer::Length(buffer);
-
-  // offset
-  if (!info[2]->IsInt32()) {
-    Nan::ThrowTypeError("Third argument must be an int");
-    return;
-  }
-  int offset = Nan::To<v8::Int32>(info[2]).ToLocalChecked()->Value();
-
-  // bytes to read
-  if (!info[3]->IsInt32()) {
-    Nan::ThrowTypeError("Fourth argument must be an int");
-    return;
-  }
-  size_t bytesToRead = Nan::To<v8::Int32>(info[3]).ToLocalChecked()->Value();
-
-  if ((bytesToRead + offset) > bufferLength) {
-    Nan::ThrowTypeError("'bytesToRead' + 'offset' cannot be larger than the buffer's length");
-    return;
-  }
-
-  // callback
-  if (!info[4]->IsFunction()) {
-    Nan::ThrowTypeError("Fifth argument must be a function");
-    return;
-  }
-
-  ReadBaton* baton = new ReadBaton();
-  baton->fd = fd;
-  baton->offset = offset;
-  baton->bytesToRead = bytesToRead;
-  baton->bufferLength = bufferLength;
-  baton->bufferData = node::Buffer::Data(buffer);
-  baton->callback.Reset(info[4].As<v8::Function>());
-  baton->complete = false;
-
-  auto out = logger();
-  out << currentMs() << " read method called (need=" << bytesToRead << ")\n";
-  out.close();
-
-  uv_async_t* async = new uv_async_t;
-  uv_async_init(uv_default_loop(), async, EIO_AfterRead);
-  async->data = baton;
-  // ReadFileEx requires a thread that can block. Create a new thread to
-  // run the read operation, saving the handle so it can be deallocated later.
-  baton->hThread = CreateThread(NULL, 0, ReadThread, async, 0, NULL);
-}
-
 int ReadHandle(ReadBaton *baton, bool blocking) {
     OVERLAPPED* ov = new OVERLAPPED;
 
@@ -576,6 +516,191 @@ int ReadHandleNonBlocking(ReadBaton *baton) {
     baton->offset += bytesTransferred;
     baton->complete = baton->bytesToRead == 0;
     return bytesTransferred;
+}
+
+std::mutex readThreadMutex;
+std::condition_variable readThreadCondition;
+uv_async_t* readCallData = nullptr;
+
+class Reader {
+    std::mutex mutex;
+    std::condition_variable condition;
+    uv_async_t* data = nullptr;
+
+    uv_async_t* getNextJob() {
+        std::unique_lock<std::mutex> lck(mutex);
+
+        condition.wait(lck, [&](){ return data != nullptr; });
+
+        auto async = data;
+        data = nullptr;
+
+        lck.unlock();
+        condition.notify_all();
+
+        return async;
+    }
+
+    int readHandle(ReadBaton* baton, bool blocking) {
+        OVERLAPPED* ov = new OVERLAPPED;
+
+        // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
+        // return immediately no matter how much data is available.
+        COMMTIMEOUTS commTimeouts = {};
+
+        if (blocking) {
+            commTimeouts.ReadIntervalTimeout = 0;
+        }
+        else {
+            commTimeouts.ReadIntervalTimeout = MAXDWORD;
+        }
+
+        if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
+            int lastError = GetLastError();
+            ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
+            baton->complete = true;
+            return 0;
+        }
+
+        // Store additional data after whatever data has already been read.
+        char* offsetPtr = baton->bufferData + baton->offset;
+
+        // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
+        memset(ov, 0, sizeof(OVERLAPPED));
+        ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+        DWORD bytesTransferred = 0;
+
+        if (!ReadFile(int2handle(baton->fd), offsetPtr, baton->bytesToRead, &bytesTransferred, ov)) {
+            int errorCode = GetLastError();
+
+            if (errorCode != ERROR_IO_PENDING) {
+                ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, baton->errorString);
+                baton->complete = true;
+                CloseHandle(ov->hEvent);
+                return 0;
+            }
+
+            if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, TRUE)) {
+                int lastError = GetLastError();
+                ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, baton->errorString);
+                baton->complete = true;
+                CloseHandle(ov->hEvent);
+                return 0;
+            }
+        }
+
+        CloseHandle(ov->hEvent);
+
+        baton->bytesToRead -= bytesTransferred;
+        baton->bytesRead += bytesTransferred;
+        baton->offset += bytesTransferred;
+        baton->complete = baton->bytesToRead == 0;
+        return bytesTransferred;
+    }
+
+public:
+    void addReadJob(uv_async_t* async) {
+        std::unique_lock<std::mutex> lck(mutex);
+        condition.wait(lck, [&](){ return data == nullptr; });
+
+        data = async;
+        condition.notify_all();
+    }
+
+    void thread() {
+
+        auto out = logger();
+
+        while (true) {
+            auto async = getNextJob();
+            ReadBaton* baton = static_cast<ReadBaton*>(async->data);
+
+            int start = currentMs();
+            out << currentMs() << "ReadThreader: start read\n";
+
+            while (!baton->complete) {
+
+                readHandle(baton, true);
+
+                if (baton->bytesToRead == 0) {
+                    baton->complete = true;
+                }
+            }
+
+            out << currentMs() << " ReadThreader: done, took " << (currentMs() - start) << "ms\n";
+            out.flush();
+
+            // Signal the main thread to run the callback.
+            uv_async_send(async);
+        }
+    }
+};
+
+
+
+Reader* reader = new Reader();
+std::thread t(&Reader::thread, reader);
+
+
+NAN_METHOD(Read) {
+  // file descriptor
+  if (!info[0]->IsInt32()) {
+    Nan::ThrowTypeError("First argument must be a fd");
+    return;
+  }
+  int fd = Nan::To<int>(info[0]).FromJust();
+
+  // buffer
+  if (!info[1]->IsObject() || !node::Buffer::HasInstance(info[1])) {
+    Nan::ThrowTypeError("Second argument must be a buffer");
+    return;
+  }
+  v8::Local<v8::Object> buffer = Nan::To<v8::Object>(info[1]).ToLocalChecked();
+  size_t bufferLength = node::Buffer::Length(buffer);
+
+  // offset
+  if (!info[2]->IsInt32()) {
+    Nan::ThrowTypeError("Third argument must be an int");
+    return;
+  }
+  int offset = Nan::To<v8::Int32>(info[2]).ToLocalChecked()->Value();
+
+  // bytes to read
+  if (!info[3]->IsInt32()) {
+    Nan::ThrowTypeError("Fourth argument must be an int");
+    return;
+  }
+  size_t bytesToRead = Nan::To<v8::Int32>(info[3]).ToLocalChecked()->Value();
+
+  if ((bytesToRead + offset) > bufferLength) {
+    Nan::ThrowTypeError("'bytesToRead' + 'offset' cannot be larger than the buffer's length");
+    return;
+  }
+
+  // callback
+  if (!info[4]->IsFunction()) {
+    Nan::ThrowTypeError("Fifth argument must be a function");
+    return;
+  }
+
+  ReadBaton* baton = new ReadBaton();
+  baton->fd = fd;
+  baton->offset = offset;
+  baton->bytesToRead = bytesToRead;
+  baton->bufferLength = bufferLength;
+  baton->bufferData = node::Buffer::Data(buffer);
+  baton->callback.Reset(info[4].As<v8::Function>());
+  baton->complete = false;
+
+  uv_async_t* async = new uv_async_t;
+  uv_async_init(uv_default_loop(), async, EIO_AfterRead);
+  async->data = baton;
+  // ReadFileEx requires a thread that can block. Create a new thread to
+  // run the read operation, saving the handle so it can be deallocated later.
+
+  // baton->hThread = CreateThread(NULL, 0, ReadThread, async, 0, NULL);
+
+  reader->addReadJob(async);
 }
 
 void __stdcall ReadIOCompletion(DWORD errorCode, DWORD bytesTransferred, OVERLAPPED* ov) {
