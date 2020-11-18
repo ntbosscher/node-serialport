@@ -57,11 +57,13 @@ enum SerialPortStopBits {
 SerialPortParity ToParityEnum(const v8::Local<v8::String>& str);
 SerialPortStopBits ToStopBitEnum(double stopBits);
 
+std::ofstream logger(std::string id);
+
 struct OpenBaton : public Nan::AsyncResource {
   OpenBaton() :
     AsyncResource("node-serialport:OpenBaton"), errorString(), path() {}
   char errorString[ERROR_STRING_SIZE];
-  Nan::Callback callback;
+  Nan::Persistent<v8::Function> callback;
   char path[1024];
   int fd = 0;
   int result = 0;

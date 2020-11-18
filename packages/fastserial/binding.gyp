@@ -11,7 +11,8 @@
       ['OS=="win"',
         {
           'sources': [
-            'src/serialport_win.cpp'
+            'src/serialport_win.cpp',
+            'src/serialport_win_list.cpp'
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {

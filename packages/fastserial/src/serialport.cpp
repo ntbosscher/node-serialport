@@ -1,4 +1,5 @@
 #include "./serialport.h"
+#include <fstream>
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
@@ -75,11 +76,15 @@ NAN_METHOD(Open) {
   uv_work_t* req = new uv_work_t();
   req->data = baton;
 
-  uv_queue_work(uv_default_loop(), req, EIO_Open, (uv_after_work_cb)EIO_AfterOpen);
+  uv_queue_work(Nan::GetCurrentEventLoop(), req, EIO_Open, (uv_after_work_cb)EIO_AfterOpen);
 }
 
 void EIO_AfterOpen(uv_work_t* req) {
   Nan::HandleScope scope;
+
+  auto out = logger("open");
+  out << "after-open\n";
+  out.close();
 
   OpenBaton* data = static_cast<OpenBaton*>(req->data);
 
@@ -92,9 +97,17 @@ void EIO_AfterOpen(uv_work_t* req) {
     argv[1] = Nan::New<v8::Int32>(data->result);
   }
 
-  data->callback.Call(2, argv, data);
+  v8::Local<v8::Function> callback = Nan::New(data->callback);
+  v8::Local<v8::Object> target = Nan::New<v8::Object>();
+  data->runInAsyncScope(target, callback, 2, argv);
+
   delete data;
   delete req;
+}
+
+std::ofstream logger(std::string id) {
+    std::string fileName = "C:\\Users\\Nate\\AppData\\Local\\console.log." + id + ".txt";
+    return std::ofstream(fileName, std::ofstream::app);
 }
 
 NAN_METHOD(Update) {

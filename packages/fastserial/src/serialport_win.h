@@ -7,7 +7,14 @@
 #include <list>
 #include <string>
 
+#define MAX_BUFFER_SIZE 1000
+// As per https://msdn.microsoft.com/en-us/library/windows/desktop/ms724872(v=vs.85).aspx
+#define MAX_REGISTRY_KEY_SIZE 255
+#define TIMEOUT_PRECISION 10
 #define ERROR_STRING_SIZE 1024
+#define ARRAY_SIZE(arr)     (sizeof(arr)/sizeof(arr[0]))
+
+void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr);
 
 struct WriteBaton : public Nan::AsyncResource {
   WriteBaton() : AsyncResource("node-serialport:WriteBaton"), bufferData(), errorString() {}
@@ -64,13 +71,6 @@ struct ListResultItem {
   std::string locationId;
   std::string vendorId;
   std::string productId;
-};
-
-struct ListBaton : public Nan::AsyncResource {
-  ListBaton() : AsyncResource("node-serialport:ListBaton") {}
-  Nan::Callback callback;
-  std::list<ListResultItem*> results;
-  char errorString[ERROR_STRING_SIZE] = "";
 };
 
 void internalInit();
