@@ -25,7 +25,7 @@ void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *valu
 }
 
 std::ofstream logger(std::string id) {
-    std::string fileName = "C:\\Users\\Nate\\AppData\\Local\\console.log." + id + ".txt";
+    std::string fileName = "%HOMEPATH%\\AppData\\Local\\console.log." + id + ".txt";
     return std::ofstream(fileName, std::ofstream::app);
 }
 
