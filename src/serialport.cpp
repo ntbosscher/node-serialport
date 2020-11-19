@@ -2,6 +2,7 @@
 #include <fstream>
 #include "./util.h"
 #include "./WriteBaton.h"
+#include "./ReadBaton.h"
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
@@ -361,7 +362,6 @@ NAN_MODULE_INIT(init) {
   #endif
 
   #ifdef WIN32
-  internalInit();
   Nan::SetMethod(target, "write", Write);
   Nan::SetMethod(target, "read", Read);
   Nan::SetMethod(target, "list", List);

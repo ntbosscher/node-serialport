@@ -17,6 +17,7 @@
             'src/win_list.cpp',
             'src/OpenBaton_win.cpp',
             'src/WriteBaton_win.cpp',
+            'src/ReadBaton_win.cpp',
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {
