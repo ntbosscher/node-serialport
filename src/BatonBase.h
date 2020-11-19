@@ -25,7 +25,7 @@ public:
     uv_work_t request;
     
     std::string debugName;
-    bool verbose = false;
+    bool verbose = true;
     
     BatonBase(char* name, v8::Local<v8::Function> callback_);
     

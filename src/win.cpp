@@ -20,19 +20,6 @@
 
 std::list<int> g_closingHandles;
 
-void send_async(uv_async_t* handle) {
-    auto log = logger("async-errors");
-    log << "called" << "\n";
-    log.flush();
-
-    int err = uv_async_send(handle);
-    if (err == 0) return;
-    
-    
-    log << uv_strerror(err) << "\n";
-    log.close();
-}
-
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
 
     auto log = logger("error-code");

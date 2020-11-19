@@ -10,6 +10,12 @@ void DoAction(uv_work_t* req) {
     }
     
     baton->run();
+
+    if(baton->verbose) {
+        auto out = logger("baton-base-logger");
+        out << baton->debugName << " run finished\n";
+        out.close();
+    }
 }
 
 void AfterAction(uv_work_t* req, int status) {
@@ -31,7 +37,7 @@ void AfterAction(uv_work_t* req, int status) {
 
 
 BatonBase::BatonBase(char* name, v8::Local<v8::Function> callback_): AsyncResource(name), errorString(), debugName(name) {
-    
+    debugName = std::string(name);
     callback.Reset(callback_);
     snprintf(errorString, sizeof(errorString), "");
 }
