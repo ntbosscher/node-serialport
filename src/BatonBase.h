@@ -47,11 +47,11 @@ class ActionBaton : public BatonBase {
         request.data = this;
     }
     
-    override v8::Local<v8::Value> getReturnValue() {
+    v8::Local<v8::Value> getReturnValue() override {
         // format return value
     }
     
-    override void run() {
+    void run() override {
         // do run stuff
     }
 }

@@ -22,3 +22,29 @@ void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *valu
         Nan::Set(item, v8key, Nan::Undefined());
     }
 }
+
+std::ofstream logger(std::string id) {
+    std::string fileName = "C:\\Users\\Nate\\AppData\\Local\\console.log." + id + ".txt";
+    return std::ofstream(fileName, std::ofstream::app);
+}
+
+v8::Local<v8::Value> getValueFromObject(v8::Local<v8::Object> options, std::string key) {
+  v8::Local<v8::String> v8str = Nan::New<v8::String>(key).ToLocalChecked();
+  return Nan::Get(options, v8str).ToLocalChecked();
+}
+
+int getIntFromObject(v8::Local<v8::Object> options, std::string key) {
+  return Nan::To<v8::Int32>(getValueFromObject(options, key)).ToLocalChecked()->Value();
+}
+
+bool getBoolFromObject(v8::Local<v8::Object> options, std::string key) {
+  return Nan::To<v8::Boolean>(getValueFromObject(options, key)).ToLocalChecked()->Value();
+}
+
+v8::Local<v8::String> getStringFromObj(v8::Local<v8::Object> options, std::string key) {
+  return Nan::To<v8::String>(getValueFromObject(options, key)).ToLocalChecked();
+}
+
+double getDoubleFromObject(v8::Local<v8::Object> options, std::string key) {
+  return Nan::To<double>(getValueFromObject(options, key)).FromMaybe(0);
+}
