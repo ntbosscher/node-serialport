@@ -53,47 +53,6 @@ void AsyncCloseCallback(uv_handle_t* handle) {
   delete async;
 }
 
-void EIO_Set(uv_work_t* req) {
-  SetBaton* data = static_cast<SetBaton*>(req->data);
-
-  if (data->rts) {
-    EscapeCommFunction(int2handle(data->fd), SETRTS);
-  } else {
-    EscapeCommFunction(int2handle(data->fd), CLRRTS);
-  }
-
-  if (data->dtr) {
-    EscapeCommFunction(int2handle(data->fd), SETDTR);
-  } else {
-    EscapeCommFunction(int2handle(data->fd), CLRDTR);
-  }
-
-  if (data->brk) {
-    EscapeCommFunction(int2handle(data->fd), SETBREAK);
-  } else {
-    EscapeCommFunction(int2handle(data->fd), CLRBREAK);
-  }
-
-  DWORD bits = 0;
-
-  GetCommMask(int2handle(data->fd), &bits);
-
-  bits &= ~(EV_CTS | EV_DSR);
-
-  if (data->cts) {
-    bits |= EV_CTS;
-  }
-
-  if (data->dsr) {
-    bits |= EV_DSR;
-  }
-
-  if (!SetCommMask(int2handle(data->fd), bits)) {
-    ErrorCodeToString("Setting options on COM port (SetCommMask)", GetLastError(), data->errorString);
-    return;
-  }
-}
-
 void EIO_Get(uv_work_t* req) {
   GetBaton* data = static_cast<GetBaton*>(req->data);
 

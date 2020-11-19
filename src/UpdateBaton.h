@@ -6,7 +6,6 @@
 #include "util.h"
 #include "BatonBase.h"
 
-
 class UpdateBaton : public BatonBase
 {
 public:
@@ -17,7 +16,7 @@ public:
 
     int fd = 0;
     int baudRate = 0;
-    
+
     void run() override;
     v8::Local<v8::Value> getReturnValue() override;
 };

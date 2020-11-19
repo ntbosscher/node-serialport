@@ -4,6 +4,7 @@
 #include "./WriteBaton.h"
 #include "./ReadBaton.h"
 #include "./UpdateBaton.h"
+#include "./SetBaton.h"
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
@@ -91,60 +92,6 @@ void EIO_AfterFlush(uv_work_t* req) {
     argv[0] = Nan::Null();
   }
 
-  data->callback.Call(1, argv, data);
-
-  delete data;
-  delete req;
-}
-
-NAN_METHOD(Set) {
-  // file descriptor
-  if (!info[0]->IsInt32()) {
-    Nan::ThrowTypeError("First argument must be an int");
-    return;
-  }
-  int fd = Nan::To<int>(info[0]).FromJust();
-
-  // options
-  if (!info[1]->IsObject()) {
-    Nan::ThrowTypeError("Second argument must be an object");
-    return;
-  }
-  v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-
-  // callback
-  if (!info[2]->IsFunction()) {
-    Nan::ThrowTypeError("Third argument must be a function");
-    return;
-  }
-  v8::Local<v8::Function> callback = info[2].As<v8::Function>();
-
-  SetBaton* baton = new SetBaton();
-  baton->fd = fd;
-  baton->callback.Reset(callback);
-  baton->brk = getBoolFromObject(options, "brk");
-  baton->rts = getBoolFromObject(options, "rts");
-  baton->cts = getBoolFromObject(options, "cts");
-  baton->dtr = getBoolFromObject(options, "dtr");
-  baton->dsr = getBoolFromObject(options, "dsr");
-
-  uv_work_t* req = new uv_work_t();
-  req->data = baton;
-  uv_queue_work(uv_default_loop(), req, EIO_Set, (uv_after_work_cb)EIO_AfterSet);
-}
-
-void EIO_AfterSet(uv_work_t* req) {
-  Nan::HandleScope scope;
-
-  SetBaton* data = static_cast<SetBaton*>(req->data);
-
-  v8::Local<v8::Value> argv[1];
-
-  if (data->errorString[0]) {
-    argv[0] = v8::Exception::Error(Nan::New<v8::String>(data->errorString).ToLocalChecked());
-  } else {
-    argv[0] = Nan::Null();
-  }
   data->callback.Call(1, argv, data);
 
   delete data;

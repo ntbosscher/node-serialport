@@ -18,10 +18,6 @@ NAN_METHOD(Flush);
 void EIO_Flush(uv_work_t* req);
 void EIO_AfterFlush(uv_work_t* req);
 
-NAN_METHOD(Set);
-void EIO_Set(uv_work_t* req);
-void EIO_AfterSet(uv_work_t* req);
-
 NAN_METHOD(Get);
 void EIO_Get(uv_work_t* req);
 void EIO_AfterGet(uv_work_t* req);
@@ -33,19 +29,6 @@ void EIO_AfterGetBaudRate(uv_work_t* req);
 NAN_METHOD(Drain);
 void EIO_Drain(uv_work_t* req);
 void EIO_AfterDrain(uv_work_t* req);
-
-struct SetBaton : public Nan::AsyncResource {
-  SetBaton() : AsyncResource("node-serialport:SetBaton"), errorString() {}
-  int fd = 0;
-  Nan::Callback callback;
-  int result = 0;
-  char errorString[ERROR_STRING_SIZE];
-  bool rts = false;
-  bool cts = false;
-  bool dtr = false;
-  bool dsr = false;
-  bool brk = false;
-};
 
 struct GetBaton : public Nan::AsyncResource {
   GetBaton() : AsyncResource("node-serialport:GetBaton"), errorString() {}
