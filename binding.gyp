@@ -15,7 +15,7 @@
         {
           'sources': [
             'src/win.cpp',
-            'src/win_list.cpp',
+            'src/ListBaton_win.cpp',
             'src/OpenBaton_win.cpp',
             'src/WriteBaton_win.cpp',
             'src/ReadBaton_win.cpp',

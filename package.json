@@ -1,6 +1,6 @@
 {
-  "name": "@serialport/fastserial",
-  "version": "9.0.2",
+  "name": "faster-serialport",
+  "version": "1.0.20",
   "main": "lib",
   "keywords": [
     "serialport-binding"
@@ -21,9 +21,9 @@
     "node": ">=8.6.0"
   },
   "scripts": {
-    "install": "prebuild-install --tag-prefix @serialport/fastserial@ || node-gyp rebuild",
+    "install": "prebuild-install --tag-prefix faster-serialport@ || node-gyp rebuild",
     "lint": "cc --verbose",
-    "prebuild": "prebuild --all --force --strip --verbose --tag-prefix @serialport/fastserial@",
+    "prebuild": "prebuild --all --force --strip --verbose --tag-prefix faster-serialport@",
     "rebuild": "node-gyp rebuild --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers"
   },
   "publishConfig": {
@@ -32,7 +32,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/serialport/node-serialport.git"
+    "url": "git://github.com/ntbosscher/faster-serialport"
   },
   "gypfile": true,
   "cc": {
