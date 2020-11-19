@@ -17,13 +17,6 @@
 #include <mutex>
 #pragma comment(lib, "setupapi.lib")
 
-// Declare type of pointer to CancelIoEx function
-typedef BOOL (WINAPI *CancelIoExType)(HANDLE hFile, LPOVERLAPPED lpOverlapped);
-
-static inline HANDLE int2handle(int ptr) {
-  return reinterpret_cast<HANDLE>(static_cast<uintptr_t>(ptr));
-}
-
 std::list<int> g_closingHandles;
 
 void send_async(uv_async_t* handle) {

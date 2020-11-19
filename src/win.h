@@ -1,20 +1,22 @@
 #ifndef PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_
 #define PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
+
 #include <nan.h>
 #include <list>
+#include <v8.h>
 #include <string>
 
 #define MAX_BUFFER_SIZE 1000
+
 // As per https://msdn.microsoft.com/en-us/library/windows/desktop/ms724872(v=vs.85).aspx
 #define MAX_REGISTRY_KEY_SIZE 255
-#define TIMEOUT_PRECISION 10
-#define ERROR_STRING_SIZE 1024
-#define ARRAY_SIZE(arr)     (sizeof(arr)/sizeof(arr[0]))
 
-void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr);
+// Declare type of pointer to CancelIoEx function
+typedef BOOL (WINAPI *CancelIoExType)(HANDLE hFile, LPOVERLAPPED lpOverlapped);
+
+static inline HANDLE int2handle(int ptr) {
+  return reinterpret_cast<HANDLE>(static_cast<uintptr_t>(ptr));
+}
 
 struct WriteBaton : public Nan::AsyncResource {
   WriteBaton() : AsyncResource("node-serialport:WriteBaton"), bufferData(), errorString() {}
@@ -36,7 +38,6 @@ NAN_METHOD(Write);
 void EIO_Write(uv_work_t* req);
 void EIO_AfterWrite(uv_async_t* req);
 DWORD __stdcall WriteThread(LPVOID param);
-
 
 struct ReadBaton : public Nan::AsyncResource {
   ReadBaton() : AsyncResource("node-serialport:ReadBaton"), errorString() {}
