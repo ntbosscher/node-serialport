@@ -4,7 +4,8 @@
   "main": "lib",
   "types": "./lib/index.d.ts",
   "keywords": [
-    "serialport-binding"
+    "serialport",
+    "serial"
   ],
   "dependencies": {
     "@serialport/binding-abstract": "^9.0.2",
