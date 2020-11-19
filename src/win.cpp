@@ -53,26 +53,6 @@ void AsyncCloseCallback(uv_handle_t* handle) {
   delete async;
 }
 
-void EIO_Update(uv_work_t* req) {
-  ConnectionOptionsBaton* data = static_cast<ConnectionOptionsBaton*>(req->data);
-
-  DCB dcb = { 0 };
-  SecureZeroMemory(&dcb, sizeof(DCB));
-  dcb.DCBlength = sizeof(DCB);
-
-  if (!GetCommState(int2handle(data->fd), &dcb)) {
-    ErrorCodeToString("Update (GetCommState)", GetLastError(), data->errorString);
-    return;
-  }
-
-  dcb.BaudRate = data->baudRate;
-
-  if (!SetCommState(int2handle(data->fd), &dcb)) {
-    ErrorCodeToString("Update (SetCommState)", GetLastError(), data->errorString);
-    return;
-  }
-}
-
 void EIO_Set(uv_work_t* req) {
   SetBaton* data = static_cast<SetBaton*>(req->data);
 

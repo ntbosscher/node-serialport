@@ -10,10 +10,6 @@
 
 #define ERROR_STRING_SIZE 1024
 
-NAN_METHOD(Update);
-void EIO_Update(uv_work_t* req);
-void EIO_AfterUpdate(uv_work_t* req);
-
 NAN_METHOD(Close);
 void EIO_Close(uv_work_t* req);
 void EIO_AfterClose(uv_work_t* req);
@@ -37,21 +33,6 @@ void EIO_AfterGetBaudRate(uv_work_t* req);
 NAN_METHOD(Drain);
 void EIO_Drain(uv_work_t* req);
 void EIO_AfterDrain(uv_work_t* req);
-
-SerialPortParity ToParityEnum(const v8::Local<v8::String>& str);
-SerialPortStopBits ToStopBitEnum(double stopBits);
-
-struct ConnectionOptions {
-  ConnectionOptions() : errorString() {}
-  char errorString[ERROR_STRING_SIZE];
-  int fd = 0;
-  int baudRate = 0;
-};
-struct ConnectionOptionsBaton : ConnectionOptions, Nan::AsyncResource {
-  ConnectionOptionsBaton() :
-    AsyncResource("node-serialport:ConnectionOptionsBaton") {}
-  Nan::Callback callback;
-};
 
 struct SetBaton : public Nan::AsyncResource {
   SetBaton() : AsyncResource("node-serialport:SetBaton"), errorString() {}
@@ -93,5 +74,4 @@ struct VoidBaton : public Nan::AsyncResource {
 };
 
 int setup(int fd, OpenBaton *data);
-int setBaudRate(ConnectionOptions *data);
 #endif  // PACKAGES_SERIALPORT_SRC_SERIALPORT_H_

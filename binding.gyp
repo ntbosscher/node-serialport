@@ -19,6 +19,7 @@
             'src/OpenBaton_win.cpp',
             'src/WriteBaton_win.cpp',
             'src/ReadBaton_win.cpp',
+            'src/UpdateBaton_win.cpp',
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {
@@ -28,47 +29,6 @@
           }
         }
       ],
-      ['OS=="mac"',
-        {
-          'sources': [
-            'src/serialport_unix.cpp',
-            'src/poller.cpp',
-            'src/darwin_list.cpp'
-          ],
-          'xcode_settings': {
-            'MACOSX_DEPLOYMENT_TARGET': '10.9',
-            'OTHER_LDFLAGS': [
-              '-framework CoreFoundation -framework IOKit'
-            ]
-          }
-        }
-      ],
-      ['OS=="linux"',
-        {
-          'sources': [
-            'src/serialport_unix.cpp',
-            'src/poller.cpp',
-            'src/serialport_linux.cpp'
-          ]
-        }
-      ],
-      ['OS=="android"',
-        {
-          'sources': [
-            'src/serialport_unix.cpp',
-            'src/poller.cpp',
-            'src/serialport_linux.cpp'
-          ]
-        }
-      ],
-      ['OS!="win"',
-        {
-          'sources': [
-            'src/serialport_unix.cpp',
-            'src/poller.cpp'
-          ]
-        }
-      ]
     ]
   }],
 }

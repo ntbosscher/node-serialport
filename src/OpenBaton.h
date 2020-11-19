@@ -6,6 +6,9 @@
 #include "util.h"
 #include "BatonBase.h"
 
+SerialPortParity ToParityEnum(const v8::Local<v8::String>& str);
+SerialPortStopBits ToStopBitEnum(double stopBits);
+
 SerialPortParity NAN_INLINE(ToParityEnum(const v8::Local<v8::String> &v8str))
 {
     Nan::HandleScope scope;

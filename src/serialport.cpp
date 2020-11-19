@@ -3,6 +3,7 @@
 #include "./util.h"
 #include "./WriteBaton.h"
 #include "./ReadBaton.h"
+#include "./UpdateBaton.h"
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
@@ -14,62 +15,6 @@
 #else
   #include "./poller.h"
 #endif
-
-NAN_METHOD(Update) {
-  // file descriptor
-  if (!info[0]->IsInt32()) {
-    Nan::ThrowTypeError("First argument must be an int");
-    return;
-  }
-  int fd = Nan::To<int>(info[0]).FromJust();
-
-  // options
-  if (!info[1]->IsObject()) {
-    Nan::ThrowTypeError("Second argument must be an object");
-    return;
-  }
-  v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-
-  if (!Nan::Has(options, Nan::New<v8::String>("baudRate").ToLocalChecked()).FromMaybe(false)) {
-    Nan::ThrowTypeError("\"baudRate\" must be set on options object");
-    return;
-  }
-
-  // callback
-  if (!info[2]->IsFunction()) {
-    Nan::ThrowTypeError("Third argument must be a function");
-    return;
-  }
-
-  ConnectionOptionsBaton* baton = new ConnectionOptionsBaton();
-
-  baton->fd = fd;
-  baton->baudRate = getIntFromObject(options, "baudRate");
-  baton->callback.Reset(info[2].As<v8::Function>());
-
-  uv_work_t* req = new uv_work_t();
-  req->data = baton;
-
-  uv_queue_work(uv_default_loop(), req, EIO_Update, (uv_after_work_cb)EIO_AfterUpdate);
-}
-
-void EIO_AfterUpdate(uv_work_t* req) {
-  Nan::HandleScope scope;
-
-  ConnectionOptionsBaton* data = static_cast<ConnectionOptionsBaton*>(req->data);
-
-  v8::Local<v8::Value> argv[1];
-  if (data->errorString[0]) {
-    argv[0] = v8::Exception::Error(Nan::New<v8::String>(data->errorString).ToLocalChecked());
-  } else {
-    argv[0] = Nan::Null();
-  }
-
-  data->callback.Call(1, argv, data);
-
-  delete data;
-  delete req;
-}
 
 NAN_METHOD(Close) {
   // file descriptor
