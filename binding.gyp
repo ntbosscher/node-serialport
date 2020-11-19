@@ -1,6 +1,7 @@
 {
   'targets': [{
     'target_name': 'bindings',
+    'win_delay_load_hook': 'true',
     'sources': [
       'src/serialport.cpp',
       'src/util.cpp',
