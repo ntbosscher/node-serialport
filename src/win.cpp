@@ -166,26 +166,6 @@ bool IsClosingHandle(int fd) {
   return false;
 }
 
-void EIO_AfterWrite(uv_async_t* req) {
-  Nan::HandleScope scope;
-  WriteBaton* baton = static_cast<WriteBaton*>(req->data);
-  uv_close(reinterpret_cast<uv_handle_t*>(req), AsyncCloseCallback);
-
-  v8::Local<v8::Value> argv[1];
-  if (baton->errorString[0]) {
-    argv[0] = v8::Exception::Error(Nan::New<v8::String>(baton->errorString).ToLocalChecked());
-  } else {
-    argv[0] = Nan::Null();
-  }
-  baton->callback.Call(1, argv, baton);
-  baton->buffer.Reset();
-  delete baton;
-}
-
-int currentMs() {
-  return clock() / (CLOCKS_PER_SEC / 1000);
-}
-
 class Worker {
     std::mutex mutex;
     std::condition_variable condition;
@@ -214,169 +194,6 @@ public:
         condition.notify_all();
     }
 };
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///                                                                                                       ///
-///                                                                                                       ///
-///  Writer                                                                                               ///
-///                                                                                                       ///
-///                                                                                                       ///
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class Writer : public Worker {
-    int writeHandle(WriteBaton* baton, bool blocking) {
-
-        OVERLAPPED* ov = new OVERLAPPED;
-
-        // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
-        // return immediately no matter how much data is available.
-        COMMTIMEOUTS commTimeouts = {};
-
-        if (blocking) {
-            commTimeouts.ReadIntervalTimeout = TIMEOUT_PRECISION;
-        }
-        else {
-            commTimeouts.ReadIntervalTimeout = MAXDWORD;
-        }
-
-        if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts)) {
-            int lastError = GetLastError();
-            ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
-            baton->complete = true;
-            return 0;
-        }
-
-        // Store additional data after whatever data has already been read.
-        char* offsetPtr = baton->bufferData + baton->offset;
-
-        // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
-        memset(ov, 0, sizeof(OVERLAPPED));
-        ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-        DWORD bytesTransferred = 0;
-
-        if (!WriteFile(int2handle(baton->fd), offsetPtr, baton->bufferLength - baton->offset, NULL, ov)) {
-            int errorCode = GetLastError();
-            if (errorCode != ERROR_IO_PENDING) {
-                ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, baton->errorString);
-                baton->complete = true;
-                return 0;
-            }
-
-            if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, true)) {
-                int errorCode = GetLastError();
-                ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, baton->errorString);
-                baton->complete = true;
-                return 0;
-            }
-        }
-
-        CloseHandle(ov->hEvent);
-
-        baton->offset += bytesTransferred;
-        baton->complete = baton->offset == baton->bufferLength;
-        return bytesTransferred;
-    }
-
-public:
-    void thread() {
-        auto out = logger("writer");
-
-        while (true) {
-            auto async = getNextJob();
-
-            WriteBaton* baton = static_cast<WriteBaton*>(async->data);
-
-            int start = currentMs();
-            out << currentMs() << " WriteThread: start write\n";
-            int deadline = start + baton->timeout;
-
-            do {
-
-                writeHandle(baton, true);
-
-                if (baton->bytesWritten == baton->bufferLength) {
-                    baton->complete = true;
-                }
-            } while(!baton->complete && currentMs() > deadline);
-
-            out << currentMs() << " WriteThread: done, took " << (currentMs() - start) << "ms\n";
-            out.flush();
-
-            // Signal the main thread to run the callback.
-            send_async(async);
-        }
-    }
-};
-
-Writer* writer; 
-
-NAN_METHOD(Write) {
-
-    // file descriptor
-    if (!info[0]->IsInt32()) {
-        Nan::ThrowTypeError("First argument must be an int");
-        return;
-    }
-
-    int fd = Nan::To<int>(info[0]).FromJust();
-    
-    // buffer
-    if (!info[1]->IsObject() || !node::Buffer::HasInstance(info[1])) {
-        Nan::ThrowTypeError("Second argument must be a buffer");
-        return;
-    }
-
-    v8::Local<v8::Object> buffer = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-    char* bufferData = node::Buffer::Data(buffer);
-    size_t bufferLength = node::Buffer::Length(buffer);
-
-    // timeout
-    if (!info[2]->IsInt32()) {
-        Nan::ThrowTypeError("Second argument must be an int");
-        return;
-    }
-
-    int timeout = Nan::To<v8::Int32>(info[2]).ToLocalChecked()->Value();
-
-    // callback
-    if (!info[3]->IsFunction()) {
-        Nan::ThrowTypeError("Third argument must be a function");
-        return;
-    }
-
-    WriteBaton* baton = new WriteBaton();
-    baton->fd = fd;
-    baton->timeout = timeout;
-    baton->buffer.Reset(buffer);
-    baton->bufferData = bufferData;
-    baton->bufferLength = bufferLength;
-    baton->offset = 0;
-    baton->callback.Reset(info[3].As<v8::Function>());
-    baton->complete = false;
-
-    uv_async_t* async = new uv_async_t;
-    uv_async_init(Nan::GetCurrentEventLoop(), async, EIO_AfterWrite);
-    async->data = baton;
-
-    writer->addJob(async);
-}
-
-void __stdcall WriteIOCompletion(DWORD errorCode, DWORD bytesTransferred, OVERLAPPED* ov) {
-    WriteBaton* baton = static_cast<WriteBaton*>(ov->hEvent);
-    DWORD bytesWritten;
-    if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesWritten, TRUE)) {
-        errorCode = GetLastError();
-        ErrorCodeToString("Writing to COM port (GetOverlappedResult)", errorCode, baton->errorString);
-        baton->complete = true;
-        return;
-    }
-    if (bytesWritten) {
-        baton->offset += bytesWritten;
-        if (baton->offset >= baton->bufferLength) {
-            baton->complete = true;
-        }
-    }
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///                                                                                                       ///
@@ -608,11 +425,6 @@ void EIO_Drain(uv_work_t* req) {
 }
 
 void internalInit() {
-    writer = new Writer();
-    for (int i = 0; i < 1; i++) {
-        std::thread t(&Writer::thread, writer);
-    }
-
     reader = new Reader();
     for (int i = 0; i < 1; i++) {
         std::thread t(&Reader::thread, reader);

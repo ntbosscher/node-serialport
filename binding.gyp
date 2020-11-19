@@ -15,7 +15,8 @@
           'sources': [
             'src/win.cpp',
             'src/win_list.cpp',
-            'src/OpenBaton_win.cpp'
+            'src/OpenBaton_win.cpp',
+            'src/WriteBaton_win.cpp',
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {

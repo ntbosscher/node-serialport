@@ -18,27 +18,6 @@ static inline HANDLE int2handle(int ptr) {
   return reinterpret_cast<HANDLE>(static_cast<uintptr_t>(ptr));
 }
 
-struct WriteBaton : public Nan::AsyncResource {
-  WriteBaton() : AsyncResource("node-serialport:WriteBaton"), bufferData(), errorString() {}
-  int fd = 0;
-  int timeout = -1;
-  char* bufferData = nullptr;
-  size_t bufferLength = 0;
-  size_t offset = 0;
-  size_t bytesWritten = 0;
-  void* hThread = nullptr;
-  bool complete = false;
-  Nan::Persistent<v8::Object> buffer;
-  Nan::Callback callback;
-  int result = 0;
-  char errorString[ERROR_STRING_SIZE];
-};
-
-NAN_METHOD(Write);
-void EIO_Write(uv_work_t* req);
-void EIO_AfterWrite(uv_async_t* req);
-DWORD __stdcall WriteThread(LPVOID param);
-
 struct ReadBaton : public Nan::AsyncResource {
   ReadBaton() : AsyncResource("node-serialport:ReadBaton"), errorString() {}
   int fd = 0;

@@ -46,4 +46,6 @@ double getDoubleFromObject(v8::Local<v8::Object> options, std::string key);
 
 std::ofstream logger(std::string id);
 
+int currentMs();
+
 #endif /* util_hpp */

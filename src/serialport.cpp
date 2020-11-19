@@ -1,6 +1,7 @@
 #include "./serialport.h"
 #include <fstream>
 #include "./util.h"
+#include "./WriteBaton.h"
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
