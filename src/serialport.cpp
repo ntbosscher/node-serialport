@@ -1,5 +1,6 @@
 #include "./serialport.h"
 #include <fstream>
+#include "./util.h"
 
 #ifdef __APPLE__
   #include "./darwin_list.h"
@@ -7,7 +8,7 @@
 
 #ifdef WIN32
   #define strncasecmp strnicmp
-  #include "./serialport_win.h"
+  #include "./win.h"
 #else
   #include "./poller.h"
 #endif

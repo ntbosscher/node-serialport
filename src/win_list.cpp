@@ -1,20 +1,12 @@
 #include "./serialport.h"
-#include "./serialport_win.h"
+#include "./win.h"
+#include "./util.h"
+#include "./BatonBase.h"
 #include <nan.h>
-#include <list>
-#include <vector>
-#include <string.h>
-#include <windows.h>
-#include <Setupapi.h>
-#include <initguid.h>
-#include <devpkey.h>
-#include <ctime>
+#include <setupapi.h>
 #include <devguid.h>
-#include <fstream>
-#include <chrono>
-#include <thread>
-#include <condition_variable>
-#include <mutex>
+#include <Devpkey.h>
+
 
 // It's possible that the s/n is a construct and not the s/n of the parent USB
 // composite device. This performs some convoluted registry lookups to fetch the USB s/n.
@@ -181,7 +173,7 @@ public:
         request.data = this;
     }
     
-    override void run() {
+    void run() override {
         
         GUID* guidDev = (GUID*)&GUID_DEVCLASS_PORTS;  // NOLINT
         HDEVINFO hDevInfo = SetupDiGetClassDevs(guidDev, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE);
@@ -227,9 +219,6 @@ public:
             szBuffer[dwSize] = '\0';
             pnpId = strdup(szBuffer);
             
-            out << "SetupDiGetDeviceInstanceId success\n";
-            out.flush();
-            
             vendorId = strstr(szBuffer, "VID_");
             if (vendorId) {
                 vendorId += 4;
@@ -243,9 +232,6 @@ public:
             
             getSerialNumber(vendorId, productId, hDevInfo, deviceInfoData, MAX_REGISTRY_KEY_SIZE, serialNumber);
             
-            out << "getSerialNumber success\n";
-            out.flush();
-            
             if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
                                                  SPDRP_LOCATION_INFORMATION, &dwPropertyRegDataType,
                                                  reinterpret_cast<BYTE*>(szBuffer),
@@ -253,18 +239,12 @@ public:
                 locationId = strdup(szBuffer);
             }
             
-            out << "SetupDiGetDeviceRegistryProperty success\n";
-            out.flush();
-            
             if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
                                                  SPDRP_MFG, &dwPropertyRegDataType,
                                                  reinterpret_cast<BYTE*>(szBuffer),
                                                  sizeof(szBuffer), &dwSize)) {
                 manufacturer = strdup(szBuffer);
             }
-            
-            out << "SetupDiGetDeviceRegistryProperty success\n";
-            out.flush();
             
             HKEY hkey = SetupDiOpenDevRegKey(hDevInfo, &deviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
             
@@ -276,9 +256,6 @@ public:
                     isCom = strstr(szBuffer, "COM") != NULL;
                 }
             }
-            
-            out << "SetupDiOpenDevRegKey done\n";
-            out.flush();
             
             if (isCom) {
                 ListResultItem* resultItem = new ListResultItem();
@@ -308,26 +285,19 @@ public:
             
             RegCloseKey(hkey);
             memberIndex++;
-            
-            out << "loop-end\n";
-            out.flush();
         }
         
         if (hDevInfo) {
-            out << "destroy-list\n";
-            out.flush();
             SetupDiDestroyDeviceInfoList(hDevInfo);
         }
-        
-        out << "return\n";
-        out.flush();
     }
     
-    override v8::Local<v8::Value> getReturnValue() {
+    v8::Local<v8::Value> getReturnValue() override {
         
         v8::Local<v8::Array> results = Nan::New<v8::Array>();
         int i = 0;
-        for (std::list<ListResultItem*>::iterator it = data->results.begin(); it != data->results.end(); ++it, i++) {
+
+        for (std::list<ListResultItem*>::iterator it = this->results.begin(); it != this->results.end(); ++it, i++) {
             
             v8::Local<v8::Object> item = Nan::New<v8::Object>();
             
@@ -342,12 +312,13 @@ public:
             Nan::Set(results, i, item);
         }
         
-        for (std::list<ListResultItem*>::iterator it = data->results.begin(); it != data->results.end(); ++it) {
+        for (std::list<ListResultItem*>::iterator it = this->results.begin(); it != this->results.end(); ++it) {
             delete *it;
         }
         
+        return results;
     }
-    
+
     ~ListBaton() {
         callback.Reset();
     }

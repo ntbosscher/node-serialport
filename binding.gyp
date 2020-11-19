@@ -2,7 +2,9 @@
   'targets': [{
     'target_name': 'bindings',
     'sources': [
-      'src/serialport.cpp'
+      'src/serialport.cpp',
+      'src/util.cpp',
+      'src/BatonBase.cpp'
     ],
     'include_dirs': [
       '<!(node -e "require(\'nan\')")'
@@ -11,8 +13,8 @@
       ['OS=="win"',
         {
           'sources': [
-            'src/serialport_win.cpp',
-            'src/serialport_win_list.cpp'
+            'src/win.cpp',
+            'src/win_list.cpp'
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {
