@@ -1,4 +1,4 @@
-export declare class FastSerialPort {
+export default class FasterSerialPort {
     isOpen: boolean;
   
     constructor(path: string, options: any);
@@ -30,5 +30,15 @@ export declare class FastSerialPort {
         | number;
     }): Promise<void>;
   
-    static list(): Promise<any[]>;
+    static list(): Promise<PortInfo[]>;
+  }
+
+  export interface PortInfo {
+    path: string;
+    manufacturer?: string;
+    serialNumber?: string;
+    pnpId?: string;
+    locationId?: string;
+    productId?: string;
+    vendorId?: string;
   }

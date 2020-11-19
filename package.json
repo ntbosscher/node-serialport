@@ -2,6 +2,7 @@
   "name": "faster-serialport",
   "version": "1.0.20",
   "main": "lib",
+  "types": "./lib/index.d.ts",
   "keywords": [
     "serialport-binding"
   ],

@@ -7,9 +7,9 @@ Currently only supports windows.
 
 ## API 
 ```js
-import FastSerial from "faster-serialport";
+import FasterSerialPort from "faster-serialport";
 
-const deviceInfos = await FastSerial.list();
+const deviceInfos = await FasterSerialPort.list();
 
 const deviceInfo = deviceInfos.filter(d => 
     d.path.indexOf(search) === -1 ||
@@ -21,7 +21,7 @@ const deviceInfo = deviceInfos.filter(d =>
     d.productId.indexOf(search) === -1
 )[0];
 
-const device = new FastSerial(deviceInfo.path, {
+const device = new FasterSerialPort(deviceInfo.path, {
     autoOpen: false,
     baudRate: 9600,
     dataBits: 8,
@@ -72,4 +72,10 @@ as a fork of their package and has morphed into something new.
 
 ## Known Issues
 
-- With Electron on Windows, some actions may fail within the first 5 seconds. Reloading the page via `location.reload()` or `location = "/"` fixes this issue.
+### Electron on Windows: Some actions fail within the first 5 seconds. 
+
+Reloading the page via `location.reload()` or `location = "/"` fixes this issue.
+
+### Electron: Error: Could not locate the bindings file. Tried:...
+
+Ensure you have re
