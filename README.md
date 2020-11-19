@@ -78,4 +78,13 @@ Reloading the page via `location.reload()` or `location = "/"` fixes this issue.
 
 ### Electron: Error: Could not locate the bindings file. Tried:...
 
-Ensure you have re
+Ensure you have `electron-builder` setup correctly.
+
+e.g. package.json
+```
+{
+     "scripts": {
+        "postinstall": "electron-builder install-app-deps",
+     }
+}
+```
