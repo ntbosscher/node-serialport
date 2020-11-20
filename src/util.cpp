@@ -25,7 +25,7 @@ void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *valu
 }
 
 std::ofstream logger(std::string id) {
-    std::string fileName = "%HOMEPATH%\\AppData\\Local\\console.log." + id + ".txt";
+    std::string fileName = "C:\\Users\\Nate\\AppData\\Local\\console.log." + id + ".txt";
     return std::ofstream(fileName, std::ofstream::app);
 }
 
@@ -52,4 +52,32 @@ double getDoubleFromObject(v8::Local<v8::Object> options, std::string key) {
 
 int currentMs() {
   return clock() / (CLOCKS_PER_SEC / 1000);
+}
+
+std::string wStr2Char(wchar_t *buf)
+{
+    // std::wstring wstr(buf);
+    // std::string cstr(wstr.begin(), wstr.end());
+
+    char* out = (char*)malloc(wcslen(buf)+1);
+    sprintf(out, "%ls", buf);
+
+    auto str = std::string(out);
+    free(out);
+
+    return str;
+}
+
+char* guid2Str(const GUID *id, char *out)
+{
+    int i;
+    char *ret = out;
+    out += sprintf(out, "%.8lX-%.4hX-%.4hX-", id->Data1, id->Data2, id->Data3);
+    for (i = 0; i < sizeof(id->Data4); ++i)
+    {
+        out += sprintf(out, "%.2hhX", id->Data4[i]);
+        if (i == 1)
+            *(out++) = '-';
+    }
+    return ret;
 }

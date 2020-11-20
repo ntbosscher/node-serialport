@@ -48,4 +48,7 @@ std::ofstream logger(std::string id);
 
 int currentMs();
 
+std::string wStr2Char(wchar_t *buf);
+char *guid2Str(const GUID *id, char *out);
+
 #endif /* util_hpp */
