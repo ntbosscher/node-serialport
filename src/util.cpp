@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include <chrono>
+#include <mutex>
 
 char *copySubstring(char *someString, int n) {
     char *new_ = reinterpret_cast<char*>(malloc(sizeof(char)*n + 1));
@@ -80,4 +81,31 @@ char* guid2Str(const GUID *id, char *out)
             *(out++) = '-';
     }
     return ret;
+}
+
+auto perfLogger = logger("performance");
+std::string tracking;
+int trackingStart = 0;
+std::mutex muPerfLogger;
+
+void logPerf(std::string value) {
+  auto now = currentMs();
+
+  muPerfLogger.lock();
+
+  perfLogger << now << " " << value;
+
+  if(tracking == value) {
+    perfLogger << " (" << (now - trackingStart) << "ms)";
+    tracking = "";
+    trackingStart = 0;
+  } else {
+    tracking = value;
+    trackingStart = now;
+  }
+
+  perfLogger << "\n";
+  perfLogger.flush();
+
+  muPerfLogger.unlock();
 }

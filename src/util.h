@@ -51,4 +51,6 @@ int currentMs();
 std::string wStr2Char(wchar_t *buf);
 char *guid2Str(const GUID *id, char *out);
 
+void logPerf(std::string value);
+
 #endif /* util_hpp */
