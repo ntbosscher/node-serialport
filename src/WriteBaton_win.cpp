@@ -85,6 +85,10 @@ void WriteBaton::run()
             this->complete = true;
 
     } while (!this->complete && currentMs() > deadline);
+
+    if(!this->complete) {
+        sprintf((char*)&errorString, "Timeout writing to port: %d of %d bytes written", this->bytesWritten, this->bufferLength);
+    }
 }
 
 NAN_METHOD(Write)

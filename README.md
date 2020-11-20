@@ -37,7 +37,7 @@ function writeData() {
     const data = Buffer...
 
     // blocks until write has finished or timeout expires. 
-    // If timeout expires, will return normally
+    // If timeout expires, will throw in format "Timeout writing to port: %d of %d bytes written"
     await device.write(data); 
 }
 
