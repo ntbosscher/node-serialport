@@ -18,7 +18,7 @@ int readHandle(ReadBaton *baton, bool blocking)
 
     if (blocking)
     {
-        commTimeouts.ReadIntervalTimeout = TIMEOUT_PRECISION;
+        commTimeouts.ReadTotalTimeoutConstant = TIMEOUT_PRECISION;
     }
     else
     {
@@ -80,7 +80,6 @@ void ReadBaton::run()
 
     do
     {
-
         readHandle(this, true);
 
         if (bytesToRead == 0)
