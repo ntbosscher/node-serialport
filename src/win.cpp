@@ -22,10 +22,6 @@ std::list<int> g_closingHandles;
 
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
 
-    auto log = logger("error-code");
-    log << errorCode << "\n";
-    log.close();
-
   switch (errorCode) {
   case ERROR_FILE_NOT_FOUND:
     _snprintf_s(errorStr, ERROR_STRING_SIZE, _TRUNCATE, "%s: File not found", prefix);
