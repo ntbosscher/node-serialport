@@ -87,7 +87,7 @@ void ReadBaton::run()
             complete = true;
         }
 
-    } while (!complete && currentMs() > deadline);
+    } while (!complete && currentMs() < deadline);
 }
 
 NAN_METHOD(Read)
