@@ -30,6 +30,9 @@ NAN_METHOD(Drain);
 void EIO_Drain(uv_work_t* req);
 void EIO_AfterDrain(uv_work_t* req);
 
+NAN_METHOD(ConfigureLogging);
+
+
 struct GetBaton : public Nan::AsyncResource {
   GetBaton() : AsyncResource("node-serialport:GetBaton"), errorString() {}
   int fd = 0;

@@ -196,6 +196,18 @@ void EIO_AfterGetBaudRate(uv_work_t* req) {
   delete req;
 }
 
+NAN_METHOD(ConfigureLogging) {
+
+    if (!info[0]->IsBoolean())
+    {
+        Nan::ThrowTypeError("Second argument must be a boolean");
+        return;
+    }
+
+    auto enabled = info[0]->IsTrue();
+    configureLogging(enabled);
+}
+
 NAN_METHOD(Drain) {
   // file descriptor
   if (!info[0]->IsInt32()) {
@@ -247,6 +259,7 @@ NAN_MODULE_INIT(init) {
   Nan::SetMethod(target, "close", Close);
   Nan::SetMethod(target, "flush", Flush);
   Nan::SetMethod(target, "drain", Drain);
+  Nan::SetMethod(target, "configureLogging", ConfigureLogging);
 
   #ifdef __APPLE__
   Nan::SetMethod(target, "list", List);

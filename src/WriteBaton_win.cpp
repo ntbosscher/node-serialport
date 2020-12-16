@@ -13,6 +13,13 @@ v8::Local<v8::Value> WriteBaton::getReturnValue()
 int writeHandle(WriteBaton *baton, bool blocking)
 {
 
+    if(baton->verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " to-write=" << (baton->bufferLength - baton->offset) << " blocking=" << blocking << " \n";
+        out << currentMs() << " " << baton->debugName << " buffer-contents: " << bufferToHex(baton->bufferData, (baton->bufferLength - baton->offset)) << "\n";
+        out.close();
+    }
+
     OVERLAPPED *ov = new OVERLAPPED;
 
     // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
@@ -64,6 +71,12 @@ int writeHandle(WriteBaton *baton, bool blocking)
     }
 
     CloseHandle(ov->hEvent);
+
+    if(baton->verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " wrote=" << bytesTransferred << " \n";
+        out.close();
+    }
 
     baton->offset += bytesTransferred;
     baton->complete = baton->offset == baton->bufferLength;
@@ -126,7 +139,7 @@ NAN_METHOD(Write)
     }
 
     auto cb = Nan::To<v8::Function>(info[3]).ToLocalChecked();
-    WriteBaton *baton = new WriteBaton("WriteBaton", cb);
+    WriteBaton *baton = new WriteBaton("write-baton", cb);
     
     baton->fd = fd;
     baton->timeout = timeout;

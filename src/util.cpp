@@ -8,6 +8,24 @@
 #include "util.h"
 #include <chrono>
 #include <mutex>
+#include <sstream>
+
+bool enableVerboseLogging;
+std::mutex muVerboseLogging;
+
+bool verboseLoggingEnabled() {
+  muVerboseLogging.lock();
+  auto enabled = enableVerboseLogging;
+  muVerboseLogging.unlock();
+
+  return enabled;
+}
+
+void configureLogging(bool _enabled) {
+  muVerboseLogging.lock();
+  enableVerboseLogging = _enabled;
+  muVerboseLogging.unlock();
+}
 
 char *copySubstring(char *someString, int n) {
     char *new_ = reinterpret_cast<char*>(malloc(sizeof(char)*n + 1));
@@ -25,9 +43,22 @@ void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *valu
     }
 }
 
+std::string bufferToHex(char* buffer, int len) {
+  std::stringstream output;
+
+  for(int i = 0; i < len; i++) {
+      output << std::hex << "0x" << (((int)(buffer[i])) & 0xff) << " ";
+  }
+
+  return output.str();
+}
+
+std::ofstream defaultLogger() {
+  return logger("default");
+}
+
 std::ofstream logger(std::string id) {
-    std::string fileName = "C:\\Users\\Nate\\AppData\\Local\\console.log." + id + ".txt";
-    return std::ofstream(fileName, std::ofstream::app);
+    return std::ofstream("faster-serialport-log." + id + ".txt", std::ofstream::app);
 }
 
 v8::Local<v8::Value> getValueFromObject(v8::Local<v8::Object> options, std::string key) {
@@ -83,7 +114,7 @@ char* guid2Str(const GUID *id, char *out)
     return ret;
 }
 
-auto perfLogger = logger("performance");
+std::ofstream perfLogger;
 std::string tracking;
 int trackingStart = 0;
 std::mutex muPerfLogger;
@@ -92,6 +123,10 @@ void logPerf(std::string value) {
   auto now = currentMs();
 
   muPerfLogger.lock();
+
+  if(!perfLogger) {
+    perfLogger = logger("performance");
+  }
 
   perfLogger << now << " " << value;
 

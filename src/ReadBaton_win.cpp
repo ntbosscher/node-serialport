@@ -2,6 +2,7 @@
 #include "ReadBaton.h"
 #include <nan.h>
 #include "win.h"
+#include "./util.h"
 
 v8::Local<v8::Value> ReadBaton::getReturnValue()
 {
@@ -10,6 +11,12 @@ v8::Local<v8::Value> ReadBaton::getReturnValue()
 
 int readHandle(ReadBaton *baton, bool blocking)
 {
+    if(baton->verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " expecting=" << baton->bytesToRead << " have=" << baton->bytesRead << " blocking=" << blocking << " \n";
+        out.close();
+    }
+    
     OVERLAPPED *ov = new OVERLAPPED;
 
     // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
@@ -69,6 +76,16 @@ int readHandle(ReadBaton *baton, bool blocking)
     baton->bytesRead += bytesTransferred;
     baton->offset += bytesTransferred;
     baton->complete = baton->bytesToRead == 0;
+
+    if(baton->verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " got " << bytesTransferred << "bytes\n";
+        out << currentMs() << " " << baton->debugName << " buffer-contents: " << bufferToHex(baton->bufferData, baton->bytesRead);
+
+        out << "\n";
+        out.close();
+    }
+
     return bytesTransferred;
 }
 
@@ -149,7 +166,7 @@ NAN_METHOD(Read)
     }
 
     auto cb = Nan::To<v8::Function>(info[5]).ToLocalChecked();
-    ReadBaton *baton = new ReadBaton("ReadBaton", cb);
+    ReadBaton *baton = new ReadBaton("read-baton", cb);
 
     baton->fd = fd;
     baton->offset = offset;

@@ -45,6 +45,7 @@ v8::Local<v8::String> getStringFromObj(v8::Local<v8::Object> options, std::strin
 double getDoubleFromObject(v8::Local<v8::Object> options, std::string key);
 
 std::ofstream logger(std::string id);
+std::ofstream defaultLogger();
 
 int currentMs();
 
@@ -52,5 +53,10 @@ std::string wStr2Char(wchar_t *buf);
 char *guid2Str(const GUID *id, char *out);
 
 void logPerf(std::string value);
+
+void configureLogging(bool enabled);
+bool verboseLoggingEnabled();
+
+std::string bufferToHex(char* buffer, int len);
 
 #endif /* util_hpp */

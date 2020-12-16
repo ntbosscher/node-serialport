@@ -4,16 +4,16 @@ void DoAction(uv_work_t* req) {
     auto baton = static_cast<BatonBase*>(req->data);
     
     if(baton->verbose) {
-        auto out = logger("baton-base-logger");
-        out << baton->debugName << " run job\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " run job\n";
         out.close();
     }
     
     baton->run();
 
     if(baton->verbose) {
-        auto out = logger("baton-base-logger");
-        out << baton->debugName << " run finished\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " run finished\n";
         out.close();
     }
 }
@@ -26,8 +26,8 @@ void AfterAction(uv_work_t* req, int status) {
     }
     
     if(baton->verbose) {
-        auto out = logger("baton-base-logger");
-        out << baton->debugName << " after job\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << baton->debugName << " after job\n";
         out.close();
     }
     
@@ -40,12 +40,13 @@ BatonBase::BatonBase(char* name, v8::Local<v8::Function> callback_): AsyncResour
     debugName = std::string(name);
     callback.Reset(callback_);
     snprintf(errorString, sizeof(errorString), "");
+    verbose = verboseLoggingEnabled();
 }
 
 void BatonBase::start() {
     if(verbose) {
-        auto out = logger("baton-base-logger");
-        out << debugName << " queue job\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " queue job\n";
         out.close();
     }
     
@@ -63,8 +64,8 @@ v8::Local<v8::Value> BatonBase::getReturnValue() {
 
 void BatonBase::done() {
     if(verbose) {
-        auto out = logger("baton-base-logger");
-        out << debugName << " formatting response\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " formatting response\n";
         out.close();
     }
     
@@ -84,8 +85,8 @@ void BatonBase::done() {
     runInAsyncScope(target, callback_, 2, argv);
     
     if(verbose) {
-        auto out = logger("baton-base-logger");
-        out << debugName << " sent-to-js\n";
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " sent-to-js\n";
         out.close();
     }
 }
