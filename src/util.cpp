@@ -10,7 +10,15 @@
 #include <mutex>
 #include <sstream>
 
+const char kPathSeparator =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
+
 bool enableVerboseLogging;
+std::string loggingDirectory = "";
 std::mutex muVerboseLogging;
 
 bool verboseLoggingEnabled() {
@@ -21,9 +29,18 @@ bool verboseLoggingEnabled() {
   return enabled;
 }
 
-void configureLogging(bool _enabled) {
+std::string getLoggingDirectory() {
+  muVerboseLogging.lock();
+  auto dir = loggingDirectory;
+  muVerboseLogging.unlock();
+
+  return dir;
+}
+
+void configureLogging(bool _enabled, std::string _dir) {
   muVerboseLogging.lock();
   enableVerboseLogging = _enabled;
+  loggingDirectory = _dir;
   muVerboseLogging.unlock();
 }
 
@@ -58,7 +75,7 @@ std::ofstream defaultLogger() {
 }
 
 std::ofstream logger(std::string id) {
-    return std::ofstream("faster-serialport-log." + id + ".txt", std::ofstream::app);
+    return std::ofstream(getLoggingDirectory() + kPathSeparator + "faster-serialport-log." + id + ".txt", std::ofstream::app);
 }
 
 v8::Local<v8::Value> getValueFromObject(v8::Local<v8::Object> options, std::string key) {

@@ -54,7 +54,7 @@ char *guid2Str(const GUID *id, char *out);
 
 void logPerf(std::string value);
 
-void configureLogging(bool enabled);
+void configureLogging(bool _enabled, std::string _dir);
 bool verboseLoggingEnabled();
 
 std::string bufferToHex(char* buffer, int len);

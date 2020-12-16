@@ -31,7 +31,7 @@ export default class FasterSerialPort {
     }): Promise<void>;
   
     static list(): Promise<PortInfo[]>;
-    static configureLogging(enabled: boolean): void;
+    static configureLogging(enabled: boolean, dir: string): void;
   }
 
   export interface PortInfo {
