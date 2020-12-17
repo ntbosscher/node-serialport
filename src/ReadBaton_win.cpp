@@ -10,13 +10,8 @@ v8::Local<v8::Value> ReadBaton::getReturnValue()
     return Nan::New<v8::Integer>(static_cast<int>(bytesRead));
 }
 
-int readHandle(ReadBaton *baton, bool blocking)
+int readFromSerial(int fd, char* buffer, int length, bool blocking, char* error)
 {
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " expecting=" << baton->bytesToRead << " have=" << baton->bytesRead << " blocking=" << blocking << " \n";
-        out.close();
-    }
     
     OVERLAPPED *ov = new OVERLAPPED;
 
@@ -33,60 +28,38 @@ int readHandle(ReadBaton *baton, bool blocking)
         commTimeouts.ReadIntervalTimeout = MAXDWORD;
     }
 
-    if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts))
+    if (!SetCommTimeouts(int2handle(fd), &commTimeouts))
     {
         int lastError = GetLastError();
-        ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
-        baton->complete = true;
-        return 0;
+        ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, error);
+        return -1;
     }
-
-    // Store additional data after whatever data has already been read.
-    char *offsetPtr = baton->bufferData + baton->offset;
 
     // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
     memset(ov, 0, sizeof(OVERLAPPED));
     ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     DWORD bytesTransferred = 0;
 
-    if (!ReadFile(int2handle(baton->fd), offsetPtr, baton->bytesToRead, &bytesTransferred, ov))
+    if (!ReadFile(int2handle(fd), buffer, length, &bytesTransferred, ov))
     {
         int errorCode = GetLastError();
-
         if (errorCode != ERROR_IO_PENDING)
         {
-            ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, baton->errorString);
-            baton->complete = true;
+            ErrorCodeToString("Reading from COM port (ReadFile)", errorCode, error);
             CloseHandle(ov->hEvent);
-            return 0;
+            return -1;
         }
 
-        if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, TRUE))
+        if (!GetOverlappedResult(int2handle(fd), ov, &bytesTransferred, TRUE))
         {
             int lastError = GetLastError();
-            ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, baton->errorString);
-            baton->complete = true;
+            ErrorCodeToString("Reading from COM port (GetOverlappedResult)", lastError, error);
             CloseHandle(ov->hEvent);
-            return 0;
+            return -1;
         }
     }
 
     CloseHandle(ov->hEvent);
-
-    baton->bytesToRead -= bytesTransferred;
-    baton->bytesRead += bytesTransferred;
-    baton->offset += bytesTransferred;
-    baton->complete = baton->bytesToRead == 0;
-
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " got " << bytesTransferred << "bytes\n";
-        out << currentMs() << " " << baton->debugName << " buffer-contents: " << bufferToHex(baton->bufferData, baton->bytesRead);
-
-        out << "\n";
-        out.close();
-    }
-
     return bytesTransferred;
 }
 
@@ -98,11 +71,32 @@ void ReadBaton::run()
 
     do
     {
-        readHandle(this, true);
+        if(verbose) {
+            auto out = defaultLogger();
+            out << currentMs() << " " << debugName << " expecting=" << bytesToRead << " have=" << bytesRead << " blocking=" << true << " \n";
+            out.close();
+        }
 
-        if (bytesToRead == 0)
-        {
+        char *buffer = bufferData + offset;
+
+        auto bytesTransferred = readFromSerial(fd, buffer, bytesToRead, true, errorString);
+        if(bytesTransferred < 0) {
             complete = true;
+            return; // error
+        }
+
+        bytesToRead -= bytesTransferred;
+        bytesRead += bytesTransferred;
+        offset += bytesTransferred;
+        complete = bytesToRead == 0;
+
+        if(verbose) {
+            auto out = defaultLogger();
+            out << currentMs() << " " << debugName << " got " << bytesTransferred << "bytes\n";
+            out << currentMs() << " " << debugName << " buffer-contents: " << bufferToHex(bufferData, bytesRead);
+
+            out << "\n";
+            out.close();
         }
 
     } while (!complete && currentMs() < deadline);
