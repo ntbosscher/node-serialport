@@ -10,16 +10,7 @@ v8::Local<v8::Value> WriteBaton::getReturnValue()
     return Nan::Null();
 }
 
-int writeHandle(WriteBaton *baton, bool blocking)
-{
-
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " to-write=" << (baton->bufferLength - baton->offset) << " blocking=" << blocking << " \n";
-        out << currentMs() << " " << baton->debugName << " buffer-contents: " << bufferToHex(baton->bufferData, (baton->bufferLength - baton->offset)) << "\n";
-        out.close();
-    }
-
+int writeToSerial(int fd, char* buffer, int length, bool blocking, char* error) {
     OVERLAPPED *ov = new OVERLAPPED;
 
     // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
@@ -35,51 +26,36 @@ int writeHandle(WriteBaton *baton, bool blocking)
         commTimeouts.ReadIntervalTimeout = MAXDWORD;
     }
 
-    if (!SetCommTimeouts(int2handle(baton->fd), &commTimeouts))
+    if (!SetCommTimeouts(int2handle(fd), &commTimeouts))
     {
         int lastError = GetLastError();
-        ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, baton->errorString);
-        baton->complete = true;
-        return 0;
+        ErrorCodeToString("Setting COM timeout (SetCommTimeouts)", lastError, error);
+        return -1;
     }
-
-    // Store additional data after whatever data has already been read.
-    char *offsetPtr = baton->bufferData + baton->offset;
 
     // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
     memset(ov, 0, sizeof(OVERLAPPED));
     ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     DWORD bytesTransferred = 0;
 
-    if (!WriteFile(int2handle(baton->fd), offsetPtr, baton->bufferLength - baton->offset, NULL, ov))
+    if (!WriteFile(int2handle(fd), buffer, length, NULL, ov))
     {
         int errorCode = GetLastError();
         if (errorCode != ERROR_IO_PENDING)
         {
-            ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, baton->errorString);
-            baton->complete = true;
-            return 0;
+            ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, error);
+            return -1;
         }
 
-        if (!GetOverlappedResult(int2handle(baton->fd), ov, &bytesTransferred, true))
+        if (!GetOverlappedResult(int2handle(fd), ov, &bytesTransferred, true))
         {
             int errorCode = GetLastError();
-            ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, baton->errorString);
-            baton->complete = true;
-            return 0;
+            ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, error);
+            return -1;
         }
     }
 
     CloseHandle(ov->hEvent);
-
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " wrote=" << bytesTransferred << " \n";
-        out.close();
-    }
-
-    baton->offset += bytesTransferred;
-    baton->complete = baton->offset == baton->bufferLength;
     return bytesTransferred;
 }
 
@@ -91,16 +67,35 @@ void WriteBaton::run()
 
     do
     {
+        if(verbose) {
+            auto out = defaultLogger();
+            out << currentMs() << " " << debugName << " to-write=" << (bufferLength - offset) << " blocking=" << true << " \n";
+            out << currentMs() << " " << debugName << " buffer-contents: " << bufferToHex(bufferData, (bufferLength - offset)) << "\n";
+            out.close();
+        }
 
-        writeHandle(this, true);
+        char *buffer = bufferData + offset;
+        int len = bufferLength - offset;
 
-        if (this->bytesWritten == this->bufferLength)
-            this->complete = true;
+        auto bytesTransferred = writeToSerial(fd, buffer, len, true, errorString);
+        if(bytesTransferred < 0) {
+            complete = true;
+            return;
+        }
 
-    } while (!this->complete && currentMs() > deadline);
+        if(verbose) {
+            auto out = defaultLogger();
+            out << currentMs() << " " << debugName << " wrote=" << bytesTransferred << " \n";
+            out.close();
+        }
 
-    if(!this->complete) {
-        sprintf((char*)&errorString, "Timeout writing to port: %d of %d bytes written", this->bytesWritten, this->bufferLength);
+        offset += bytesTransferred;
+        complete = offset == bufferLength;
+
+    } while (!complete && currentMs() > deadline);
+
+    if(!complete) {
+        sprintf((char*)&errorString, "Timeout writing to port: %d of %d bytes written", (this->bufferLength-this->offset), this->bufferLength);
     }
 }
 
