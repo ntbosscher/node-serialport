@@ -2,6 +2,7 @@
 #include "./UpdateBaton.h"
 #include "./util.h"
 #include "./win.h"
+#include "./V8ArgDecoder.h"
 
 v8::Local<v8::Value> UpdateBaton::getReturnValue()
 {
@@ -32,42 +33,23 @@ void UpdateBaton::run()
 
 NAN_METHOD(Update)
 {
-    // file descriptor
-    if (!info[0]->IsInt32())
-    {
-        Nan::ThrowTypeError("First argument must be an int");
-        return;
-    }
+    V8ArgDecoder args(&info);
 
-    int fd = Nan::To<int>(info[0]).FromJust();
+    auto fd = args.takeInt32();
+    auto object = args.takeObject();
+    auto cb = args.takeFunction();
 
-    // options
-    if (!info[1]->IsObject())
-    {
-        Nan::ThrowTypeError("Second argument must be an object");
-        return;
-    }
+    if(args.hasError()) return;
 
-    v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-
-    if (!Nan::Has(options, Nan::New<v8::String>("baudRate").ToLocalChecked()).FromMaybe(false))
+    if (!object.hasKey("baudRate"))
     {
         Nan::ThrowTypeError("\"baudRate\" must be set on options object");
         return;
     }
 
-    // callback
-    if (!info[2]->IsFunction())
-    {
-        Nan::ThrowTypeError("Third argument must be a function");
-        return;
-    }
-
-    auto cb = Nan::To<v8::Function>(info[2]).ToLocalChecked();
-
     UpdateBaton *baton = new UpdateBaton("UpdateBaton", cb);
     baton->fd = fd;
-    baton->baudRate = getIntFromObject(options, "baudRate");
+    baton->baudRate = object.getInt("baudRate");
 
     baton->start();
 }

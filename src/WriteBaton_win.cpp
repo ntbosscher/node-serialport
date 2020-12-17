@@ -2,11 +2,11 @@
 #include "WriteBaton.h"
 #include <nan.h>
 #include "win.h"
-
+#include <v8.h>
+#include "./V8ArgDecoder.h"
 
 v8::Local<v8::Value> WriteBaton::getReturnValue()
 {
-    buffer.Reset();
     return Nan::Null();
 }
 
@@ -106,46 +106,21 @@ void WriteBaton::run()
 
 NAN_METHOD(Write)
 {
-    // file descriptor
-    if (!info[0]->IsInt32()) {
-        Nan::ThrowTypeError("First argument must be an int");
-        return;
-    }
+    V8ArgDecoder args(&info);
 
-    int fd = Nan::To<int>(info[0]).FromJust();
-    
-    // buffer
-    if (!info[1]->IsObject() || !node::Buffer::HasInstance(info[1])) {
-        Nan::ThrowTypeError("Second argument must be a buffer");
-        return;
-    }
+    auto fd = args.takeInt32();
+    auto buffer = args.takeBuffer();
+    auto timeout = args.takeInt32();
+    auto cb = args.takeFunction();
 
-    v8::Local<v8::Object> buffer = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-    char* bufferData = node::Buffer::Data(buffer);
-    size_t bufferLength = node::Buffer::Length(buffer);
+    if(args.hasError()) return;
 
-    // timeout
-    if (!info[2]->IsInt32()) {
-        Nan::ThrowTypeError("Second argument must be an int");
-        return;
-    }
-
-    int timeout = Nan::To<v8::Int32>(info[2]).ToLocalChecked()->Value();
-
-    // callback
-    if (!info[3]->IsFunction()) {
-        Nan::ThrowTypeError("Third argument must be a function");
-        return;
-    }
-
-    auto cb = Nan::To<v8::Function>(info[3]).ToLocalChecked();
     WriteBaton *baton = new WriteBaton("write-baton", cb);
     
     baton->fd = fd;
     baton->timeout = timeout;
-    baton->buffer.Reset(buffer);
-    baton->bufferData = bufferData;
-    baton->bufferLength = bufferLength;
+    baton->bufferData = buffer.buffer;
+    baton->bufferLength = buffer.length;
     baton->offset = 0;
     baton->complete = false;
 

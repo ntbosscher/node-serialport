@@ -2,6 +2,7 @@
 #include "SetBaton.h"
 #include <nan.h>
 #include "win.h"
+#include "./V8ArgDecoder.h";
 
 v8::Local<v8::Value> SetBaton::getReturnValue()
 {
@@ -63,38 +64,22 @@ void SetBaton::run()
 
 NAN_METHOD(Set)
 {
-    if (!info[0]->IsInt32())
-    {
-        Nan::ThrowTypeError("First argument must be an int");
-        return;
-    }
-    int fd = Nan::To<int>(info[0]).FromJust();
+    V8ArgDecoder args(&info);
 
-    // options
-    if (!info[1]->IsObject())
-    {
-        Nan::ThrowTypeError("Second argument must be an object");
-        return;
-    }
-    v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
+    auto fd = args.takeInt32();
+    auto object = args.takeObject();
+    auto cb = args.takeFunction();
 
-    // callback
-    if (!info[2]->IsFunction())
-    {
-        Nan::ThrowTypeError("Third argument must be a function");
-        return;
-    }
-    v8::Local<v8::Function> callback = info[2].As<v8::Function>();
+    if(args.hasError()) return;
 
-    auto cb = Nan::To<v8::Function>(info[2]).ToLocalChecked();
     SetBaton *baton = new SetBaton("SetBaton", cb);
 
     baton->fd = fd;
-    baton->brk = getBoolFromObject(options, "brk");
-    baton->rts = getBoolFromObject(options, "rts");
-    baton->cts = getBoolFromObject(options, "cts");
-    baton->dtr = getBoolFromObject(options, "dtr");
-    baton->dsr = getBoolFromObject(options, "dsr");
+    baton->brk = object.getBool("brk");
+    baton->rts = object.getBool("rts");
+    baton->cts = object.getBool("cts");
+    baton->dtr = object.getBool("dtr");
+    baton->dsr = object.getBool("dsr");
 
     baton->start();
 }

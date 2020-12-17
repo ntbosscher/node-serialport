@@ -3,6 +3,7 @@
 #include <nan.h>
 #include "win.h"
 #include "./util.h"
+#include "./V8ArgDecoder.h"
 
 v8::Local<v8::Value> ReadBaton::getReturnValue()
 {
@@ -109,70 +110,30 @@ void ReadBaton::run()
 
 NAN_METHOD(Read)
 {
-    // file descriptor
-    if (!info[0]->IsInt32())
-    {
-        Nan::ThrowTypeError("First argument must be a fd");
-        return;
-    }
-    int fd = Nan::To<int>(info[0]).FromJust();
+    V8ArgDecoder args(&info);
 
-    // buffer
-    if (!info[1]->IsObject() || !node::Buffer::HasInstance(info[1]))
-    {
-        Nan::ThrowTypeError("Second argument must be a buffer");
-        return;
-    }
-    v8::Local<v8::Object> buffer = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-    size_t bufferLength = node::Buffer::Length(buffer);
+    auto fd = args.takeInt32();
+    auto buffer = args.takeBuffer();
+    auto offset = args.takeInt32();
+    auto bytesToRead = args.takeInt32();
+    auto timeout = args.takeInt32();
+    auto cb = args.takeFunction();
 
-    // offset
-    if (!info[2]->IsInt32())
-    {
-        Nan::ThrowTypeError("Third argument must be an int");
-        return;
-    }
-    int offset = Nan::To<v8::Int32>(info[2]).ToLocalChecked()->Value();
+    if(args.hasError()) return;
 
-    // bytes to read
-    if (!info[3]->IsInt32())
-    {
-        Nan::ThrowTypeError("Fourth argument must be an int");
-        return;
-    }
-
-    size_t bytesToRead = Nan::To<v8::Int32>(info[3]).ToLocalChecked()->Value();
-
-    if ((bytesToRead + offset) > bufferLength)
+    if ((bytesToRead + offset) > buffer.length)
     {
         Nan::ThrowTypeError("'bytesToRead' + 'offset' cannot be larger than the buffer's length");
         return;
     }
 
-    // timeout
-    if (!info[4]->IsInt32())
-    {
-        Nan::ThrowTypeError("Fifth argument must be an int");
-        return;
-    }
-
-    int timeout = Nan::To<v8::Int32>(info[4]).ToLocalChecked()->Value();
-
-    // callback
-    if (!info[5]->IsFunction())
-    {
-        Nan::ThrowTypeError("Sixth argument must be a function");
-        return;
-    }
-
-    auto cb = Nan::To<v8::Function>(info[5]).ToLocalChecked();
     ReadBaton *baton = new ReadBaton("read-baton", cb);
 
     baton->fd = fd;
     baton->offset = offset;
     baton->bytesToRead = bytesToRead;
-    baton->bufferLength = bufferLength;
-    baton->bufferData = node::Buffer::Data(buffer);
+    baton->bufferLength = buffer.length;
+    baton->bufferData = buffer.buffer;
     baton->timeout = timeout;
     baton->complete = false;
 

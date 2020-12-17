@@ -20,7 +20,8 @@
             'src/WriteBaton_win.cpp',
             'src/ReadBaton_win.cpp',
             'src/UpdateBaton_win.cpp',
-            'src/SetBaton_win.cpp'
+            'src/SetBaton_win.cpp',
+            'src/V8ArgDecoder.cpp'
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {

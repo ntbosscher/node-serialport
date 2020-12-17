@@ -1,6 +1,7 @@
 
 #include "./OpenBaton.h"
 #include "./util.h"
+#include "./V8ArgDecoder.h"
 
 v8::Local<v8::Value> OpenBaton::getReturnValue()
 {
@@ -164,48 +165,30 @@ void OpenBaton::run()
 
 NAN_METHOD(Open)
 {
-    // path
-    if (!info[0]->IsString())
-    {
-        Nan::ThrowTypeError("First argument must be a string");
-        return;
-    }
-    Nan::Utf8String path(info[0]);
+    V8ArgDecoder args(&info);
 
-    // options
-    if (!info[1]->IsObject())
-    {
-        Nan::ThrowTypeError("Second argument must be an object");
-        return;
-    }
+    auto path = args.takeString();
+    auto object = args.takeObject();
+    auto cb = args.takeFunction();
 
-    v8::Local<v8::Object> options = Nan::To<v8::Object>(info[1]).ToLocalChecked();
-
-    // callback
-    if (!info[2]->IsFunction())
-    {
-        Nan::ThrowTypeError("Third argument must be a function");
-        return;
-    }
-
-    auto cb = Nan::To<v8::Function>(info[2]).ToLocalChecked();
+    if(args.hasError()) return;
 
     OpenBaton *baton = new OpenBaton("OpenBaton", cb);
-    snprintf(baton->path, sizeof(baton->path), "%s", *path);
-    baton->baudRate = getIntFromObject(options, "baudRate");
-    baton->dataBits = getIntFromObject(options, "dataBits");
-    baton->parity = ToParityEnum(getStringFromObj(options, "parity"));
-    baton->stopBits = ToStopBitEnum(getDoubleFromObject(options, "stopBits"));
-    baton->rtscts = getBoolFromObject(options, "rtscts");
-    baton->xon = getBoolFromObject(options, "xon");
-    baton->xoff = getBoolFromObject(options, "xoff");
-    baton->xany = getBoolFromObject(options, "xany");
-    baton->hupcl = getBoolFromObject(options, "hupcl");
-    baton->lock = getBoolFromObject(options, "lock");
+    strncpy_s(baton->path, sizeof(baton->path), path.c_str(), _TRUNCATE);
+    baton->baudRate = object.getInt("baudRate");
+    baton->dataBits = object.getInt("dataBits");
+    baton->parity = ToParityEnum(object.getV8String("parity"));
+    baton->stopBits = ToStopBitEnum(object.getDouble("stopBits"));
+    baton->rtscts = object.getBool("rtscts");
+    baton->xon = object.getBool("xon");
+    baton->xoff = object.getBool("xoff");
+    baton->xany = object.getBool("xany");
+    baton->hupcl = object.getBool("hupcl");
+    baton->lock = object.getBool("lock");
 
 #ifndef WIN32
-    baton->vmin = getIntFromObject(options, "vmin");
-    baton->vtime = getIntFromObject(options, "vtime");
+    baton->vmin = object.getInt("vmin");
+    baton->vtime = object.getInt("vtime");
 #endif
 
     baton->start();

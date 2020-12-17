@@ -14,7 +14,7 @@
 #include <initguid.h>
 #include <usbiodef.h>
 #include <WinBase.h>
-
+#include "V8ArgDecoder.h"
 /* DEFINES */
 
 #define ALLOC(dwBytes) GlobalAlloc(GPTR, (dwBytes))
@@ -726,14 +726,10 @@ public:
 
 NAN_METHOD(List)
 {
-    // callback
-    if (!info[0]->IsFunction())
-    {
-        Nan::ThrowTypeError("First argument must be a function");
-        return;
-    }
+    V8ArgDecoder args(&info);
+    auto cb = args.takeFunction();
 
-    v8::Local<v8::Function> cb = Nan::To<v8::Function>(info[0]).ToLocalChecked();
+    if(args.hasError()) return;
 
     ListBaton *baton = new ListBaton(cb);
     baton->start();
