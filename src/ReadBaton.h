@@ -24,6 +24,7 @@ int fd = 0;
     void run() override;
 };
 
+int readFromSerial(int fd, char* buffer, int length, bool blocking, char* error);
 NAN_METHOD(Read);
 
 #endif

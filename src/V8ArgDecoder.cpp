@@ -70,6 +70,18 @@ int V8ArgDecoder::takeInt32() {
     return Nan::To<Int32>(value).ToLocalChecked()->Value();
 }
 
+bool V8ArgDecoder::takeBool() {
+    if(!this->checkLengthAndError()) return 0;
+
+    auto value = this->getNext();
+    if(!value->IsBoolean()) {
+        this->setError("Expecting argument 'bool' at position " + to_string(this->position-1));
+        return 0;
+    }
+
+    return Nan::To<Boolean>(value).ToLocalChecked()->Value();
+}
+
 DecodeObject V8ArgDecoder::takeObject() {
     Local<Object> defaultResult;
     if(!this->checkLengthAndError()) return DecodeObject(defaultResult);

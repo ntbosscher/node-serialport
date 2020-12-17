@@ -5,6 +5,9 @@
 #include "BatonBase.h"
 
 class WriteBaton : public BatonBase {
+private:
+    void WriteBaton::writeEcho(int deadline);
+    void WriteBaton::writeNormal(int deadline);
 public:
     WriteBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
     {
@@ -20,6 +23,7 @@ public:
     bool complete = false;
     Nan::Persistent<v8::Object> buffer;
     int result = 0;
+    bool echoMode = false;
 
     v8::Local<v8::Value> getReturnValue() override;
     void run() override;

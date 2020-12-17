@@ -35,6 +35,7 @@ public:
     virtual void run();
     virtual v8::Local<v8::Value> getReturnValue();
 
+    void logVerbose(std::string value);
     
     ~BatonBase() {
         callback.Reset();

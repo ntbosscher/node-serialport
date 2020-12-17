@@ -3,7 +3,7 @@ export default class FasterSerialPort {
   
     constructor(path: string, options: any);
   
-    write(buf: Buffer | number[]): Promise<void>;
+    write(buf: Buffer | number[], echoMode: boolean = false): Promise<void>;
     read(nBytes: number): Promise<Buffer>;
     setTimeout(ms: number): void;
     close(): Promise<void>;

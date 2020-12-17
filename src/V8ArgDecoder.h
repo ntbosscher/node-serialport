@@ -43,6 +43,7 @@ public:
     Local<Function> takeFunction();
     string takeString();
     DecodeObject takeObject();
+    bool takeBool();
 
     string getError();
     bool hasError();

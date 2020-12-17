@@ -35,6 +35,14 @@ void AfterAction(uv_work_t* req, int status) {
     delete baton;
 }
 
+void BatonBase::logVerbose(std::string input) {
+    if(!verbose) return;
+
+    auto out = defaultLogger();
+    out << std::to_string(currentMs()) << " " << debugName << " " << input << "\n";
+    out.close();
+}
+
 
 BatonBase::BatonBase(char* name, v8::Local<v8::Function> callback_): AsyncResource(name), errorString(), debugName(name) {
     debugName = std::string(name);
