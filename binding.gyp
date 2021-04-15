@@ -3,9 +3,6 @@
     'target_name': 'bindings',
     'win_delay_load_hook': 'true',
     'sources': [
-      'src/serialport.cpp',
-      'src/util.cpp',
-      'src/BatonBase.cpp'
     ],
     'include_dirs': [
       '<!(node -e "require(\'nan\')")'
@@ -14,6 +11,9 @@
       ['OS=="win"',
         {
           'sources': [
+            'src/serialport.cpp',
+            'src/util.cpp',
+            'src/BatonBase.cpp',
             'src/win.cpp',
             'src/ListBaton_win.cpp',
             'src/OpenBaton_win.cpp',
