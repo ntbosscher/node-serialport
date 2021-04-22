@@ -5,16 +5,11 @@
 #include "./ReadBaton.h"
 #include "./UpdateBaton.h"
 #include "./SetBaton.h"
-
-#ifdef __APPLE__
-  #include "./darwin_list.h"
-#endif
+#include "./ListBaton.h"
 
 #ifdef WIN32
   #define strncasecmp strnicmp
   #include "./win.h"
-#else
-  #include "./poller.h"
 #endif
 
 NAN_METHOD(Close) {
@@ -258,29 +253,19 @@ void EIO_AfterDrain(uv_work_t* req) {
 }
 
 NAN_MODULE_INIT(init) {
-  Nan::HandleScope scope;
-  Nan::SetMethod(target, "set", Set);
-  Nan::SetMethod(target, "get", Get);
-  Nan::SetMethod(target, "getBaudRate", GetBaudRate);
-  Nan::SetMethod(target, "open", Open);
-  Nan::SetMethod(target, "update", Update);
-  Nan::SetMethod(target, "close", Close);
-  Nan::SetMethod(target, "flush", Flush);
-  Nan::SetMethod(target, "drain", Drain);
-  Nan::SetMethod(target, "configureLogging", ConfigureLogging);
-
-  #ifdef __APPLE__
-  Nan::SetMethod(target, "list", List);
-  Nan::SetMethod(target, "read", Read);
-  #endif
-
-  #ifdef WIN32
-  Nan::SetMethod(target, "write", Write);
-  Nan::SetMethod(target, "read", Read);
-  Nan::SetMethod(target, "list", List);
-  #else
-  Poller::Init(target);
-  #endif
+    Nan::HandleScope scope;
+    Nan::SetMethod(target, "set", Set);
+    Nan::SetMethod(target, "get", Get);
+    Nan::SetMethod(target, "getBaudRate", GetBaudRate);
+    Nan::SetMethod(target, "open", Open);
+    Nan::SetMethod(target, "update", Update);
+    Nan::SetMethod(target, "close", Close);
+    Nan::SetMethod(target, "flush", Flush);
+    Nan::SetMethod(target, "drain", Drain);
+    Nan::SetMethod(target, "configureLogging", ConfigureLogging);
+    Nan::SetMethod(target, "write", Write);
+    Nan::SetMethod(target, "read", Read);
+    Nan::SetMethod(target, "list", List);
 }
 
 NODE_MODULE(serialport, init);

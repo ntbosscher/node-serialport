@@ -18,18 +18,7 @@ static inline HANDLE int2handle(int ptr) {
   return reinterpret_cast<HANDLE>(static_cast<uintptr_t>(ptr));
 }
 
-NAN_METHOD(List);
 void EIO_List(uv_work_t* req);
 void EIO_AfterList(uv_work_t* req);
-
-struct ListResultItem {
-  std::string path;
-  std::string manufacturer;
-  std::string serialNumber;
-  std::string pnpId;
-  std::string locationId;
-  std::string vendorId;
-  std::string productId;
-};
 
 #endif  // PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_

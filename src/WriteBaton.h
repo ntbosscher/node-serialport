@@ -6,8 +6,8 @@
 
 class WriteBaton : public BatonBase {
 private:
-    void WriteBaton::writeEcho(int deadline);
-    void WriteBaton::writeNormal(int deadline);
+    void writeEcho(int deadline);
+    void writeNormal(int deadline);
 public:
     WriteBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
     {

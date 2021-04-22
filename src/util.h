@@ -13,7 +13,9 @@
 #include <nan.h>
 #include <string.h>
 
-#define strncasecmp strnicmp
+#ifdef WIN32
+    #define strncasecmp strnicmp
+#endif
 
 enum SerialPortParity {
   SERIALPORT_PARITY_NONE  = 1,
@@ -36,7 +38,7 @@ enum SerialPortStopBits {
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr);
 
 void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *value);
-char *copySubstring(char *someString, int n);
+const char *copySubstring(char *someString, int n);
 
 v8::Local<v8::Value> getValueFromObject(v8::Local<v8::Object> options, std::string key);
 int getIntFromObject(v8::Local<v8::Object> options, std::string key);
@@ -50,7 +52,6 @@ std::ofstream defaultLogger();
 int currentMs();
 
 std::string wStr2Char(wchar_t *buf);
-char *guid2Str(const GUID *id, char *out);
 
 void logPerf(std::string value);
 

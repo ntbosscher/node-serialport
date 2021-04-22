@@ -15,6 +15,7 @@
 #include <usbiodef.h>
 #include <WinBase.h>
 #include "V8ArgDecoder.h"
+#include "./ListBaton.h"
 /* DEFINES */
 
 #define ALLOC(dwBytes) GlobalAlloc(GPTR, (dwBytes))
@@ -523,206 +524,171 @@ void getSerialNumber(const char *vid,
     return;
 }
 
-class ListBaton : public BatonBase
-{
-public:
-    std::list<ListResultItem *> results;
+void ListBaton::run() {
 
-    ListBaton(v8::Local<v8::Function> callback_) : BatonBase("node-serialport:ListBaton", callback_)
-    {
-        request.data = this;
-    }
+    GUID *guidDev = (GUID * ) & GUID_DEVCLASS_PORTS; // NOLINT
+    HDEVINFO hDevInfo = SetupDiGetClassDevs(guidDev, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE);
+    SP_DEVINFO_DATA deviceInfoData;
 
-    void run() override
-    {
+    int memberIndex = 0;
 
-        GUID *guidDev = (GUID *)&GUID_DEVCLASS_PORTS; // NOLINT
-        HDEVINFO hDevInfo = SetupDiGetClassDevs(guidDev, NULL, NULL, DIGCF_PRESENT | DIGCF_PROFILE);
-        SP_DEVINFO_DATA deviceInfoData;
+    DWORD dwSize, dwPropertyRegDataType;
+    char szBuffer[MAX_BUFFER_SIZE];
+    char *pnpId;
+    char *vendorId;
+    char *productId;
+    char *name;
+    char *manufacturer;
+    char *iManufacturer;
+    char *locationId;
+    char serialNumber[MAX_REGISTRY_KEY_SIZE];
+    bool isCom;
 
-        int memberIndex = 0;
+    while (true) {
+        pnpId = NULL;
+        vendorId = NULL;
+        productId = NULL;
+        name = NULL;
+        manufacturer = NULL;
+        iManufacturer = NULL;
+        locationId = NULL;
 
-        DWORD dwSize, dwPropertyRegDataType;
-        char szBuffer[MAX_BUFFER_SIZE];
-        char *pnpId;
-        char *vendorId;
-        char *productId;
-        char *name;
-        char *manufacturer;
-        char *iManufacturer;
-        char *locationId;
-        char serialNumber[MAX_REGISTRY_KEY_SIZE];
-        bool isCom;
+        ZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
+        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
-        while (true)
-        {
-            pnpId = NULL;
-            vendorId = NULL;
-            productId = NULL;
-            name = NULL;
-            manufacturer = NULL;
-            iManufacturer = NULL;
-            locationId = NULL;
+        if (SetupDiEnumDeviceInfo(hDevInfo, memberIndex, &deviceInfoData) == FALSE) {
+            auto errorNo = GetLastError();
 
-            ZeroMemory(&deviceInfoData, sizeof(SP_DEVINFO_DATA));
-            deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-
-            if (SetupDiEnumDeviceInfo(hDevInfo, memberIndex, &deviceInfoData) == FALSE)
-            {
-                auto errorNo = GetLastError();
-
-                if (errorNo == ERROR_NO_MORE_ITEMS)
-                {
-                    break;
-                }
-
-                ErrorCodeToString("Getting device info", errorNo, errorString);
+            if (errorNo == ERROR_NO_MORE_ITEMS) {
                 break;
             }
 
+            ErrorCodeToString("Getting device info", errorNo, errorString);
+            break;
+        }
+
+        dwSize = sizeof(szBuffer);
+        SetupDiGetDeviceInstanceId(hDevInfo, &deviceInfoData, szBuffer, dwSize, &dwSize);
+        szBuffer[dwSize] = '\0';
+        pnpId = strdup(szBuffer);
+
+        vendorId = strstr(szBuffer, "VID_");
+        if (vendorId) {
+            vendorId += 4;
+            vendorId = copySubstring(vendorId, 4);
+        }
+        productId = strstr(szBuffer, "PID_");
+        if (productId) {
+            productId += 4;
+            productId = copySubstring(productId, 4);
+        }
+
+        getSerialNumber(vendorId, productId, hDevInfo, deviceInfoData, MAX_REGISTRY_KEY_SIZE, serialNumber);
+
+        if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
+                                             SPDRP_LOCATION_INFORMATION, &dwPropertyRegDataType,
+                                             reinterpret_cast<BYTE *>(szBuffer),
+                                             sizeof(szBuffer), &dwSize)) {
+            locationId = strdup(szBuffer);
+        }
+
+        DWORD usbPortNumber = 0, requiredSize = 0;
+        SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData, SPDRP_ADDRESS, nullptr, (PBYTE) & usbPortNumber,
+                                         sizeof(usbPortNumber), &requiredSize);
+
+        GetiManufacturer(deviceInfoData, usbPortNumber, &iManufacturer);
+
+        if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
+                                             SPDRP_MFG, &dwPropertyRegDataType,
+                                             reinterpret_cast<BYTE *>(szBuffer),
+                                             sizeof(szBuffer), &dwSize)) {
+            manufacturer = strdup(szBuffer);
+        }
+
+        HKEY hkey = SetupDiOpenDevRegKey(hDevInfo, &deviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
+
+        if (hkey != INVALID_HANDLE_VALUE) {
             dwSize = sizeof(szBuffer);
-            SetupDiGetDeviceInstanceId(hDevInfo, &deviceInfoData, szBuffer, dwSize, &dwSize);
-            szBuffer[dwSize] = '\0';
-            pnpId = strdup(szBuffer);
-
-            vendorId = strstr(szBuffer, "VID_");
-            if (vendorId)
-            {
-                vendorId += 4;
-                vendorId = copySubstring(vendorId, 4);
+            if (RegQueryValueEx(hkey, "PortName", NULL, NULL, (LPBYTE) & szBuffer, &dwSize) == ERROR_SUCCESS) {
+                szBuffer[dwSize] = '\0';
+                name = strdup(szBuffer);
+                isCom = strstr(szBuffer, "COM") != NULL;
             }
-            productId = strstr(szBuffer, "PID_");
-            if (productId)
-            {
-                productId += 4;
-                productId = copySubstring(productId, 4);
-            }
-
-            getSerialNumber(vendorId, productId, hDevInfo, deviceInfoData, MAX_REGISTRY_KEY_SIZE, serialNumber);
-
-            if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
-                                                 SPDRP_LOCATION_INFORMATION, &dwPropertyRegDataType,
-                                                 reinterpret_cast<BYTE *>(szBuffer),
-                                                 sizeof(szBuffer), &dwSize))
-            {
-                locationId = strdup(szBuffer);
-            }
-
-            DWORD usbPortNumber = 0, requiredSize = 0;
-            SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData, SPDRP_ADDRESS, nullptr, (PBYTE)&usbPortNumber, sizeof(usbPortNumber), &requiredSize);
-
-            GetiManufacturer(deviceInfoData, usbPortNumber, &iManufacturer);
-
-            if (SetupDiGetDeviceRegistryProperty(hDevInfo, &deviceInfoData,
-                                                 SPDRP_MFG, &dwPropertyRegDataType,
-                                                 reinterpret_cast<BYTE *>(szBuffer),
-                                                 sizeof(szBuffer), &dwSize))
-            {
-                manufacturer = strdup(szBuffer);
-            }
-
-            HKEY hkey = SetupDiOpenDevRegKey(hDevInfo, &deviceInfoData, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_READ);
-
-            if (hkey != INVALID_HANDLE_VALUE)
-            {
-                dwSize = sizeof(szBuffer);
-                if (RegQueryValueEx(hkey, "PortName", NULL, NULL, (LPBYTE)&szBuffer, &dwSize) == ERROR_SUCCESS)
-                {
-                    szBuffer[dwSize] = '\0';
-                    name = strdup(szBuffer);
-                    isCom = strstr(szBuffer, "COM") != NULL;
-                }
-            }
-
-            if (isCom)
-            {
-                ListResultItem *resultItem = new ListResultItem();
-                resultItem->path = name;
-
-                // use iManufacturer if it's available
-                if (iManufacturer != NULL)
-                {
-                    resultItem->manufacturer = iManufacturer;
-                }
-                else
-                {
-                    resultItem->manufacturer = manufacturer;
-                }
-
-                resultItem->pnpId = pnpId;
-                if (vendorId)
-                {
-                    resultItem->vendorId = vendorId;
-                }
-                if (productId)
-                {
-                    resultItem->productId = productId;
-                }
-                resultItem->serialNumber = serialNumber;
-                if (locationId)
-                {
-                    resultItem->locationId = locationId;
-                }
-
-                results.push_back(resultItem);
-            }
-            else
-            {
-            }
-
-            free(pnpId);
-            free(vendorId);
-            free(productId);
-            free(locationId);
-            free(manufacturer);
-            free(iManufacturer);
-            free(name);
-
-            RegCloseKey(hkey);
-            memberIndex++;
         }
 
-        if (hDevInfo)
-        {
-            SetupDiDestroyDeviceInfoList(hDevInfo);
+        if (isCom) {
+            ListResultItem *resultItem = new ListResultItem();
+            resultItem->path = name;
+
+            // use iManufacturer if it's available
+            if (iManufacturer != NULL) {
+                resultItem->manufacturer = iManufacturer;
+            } else {
+                resultItem->manufacturer = manufacturer;
+            }
+
+            resultItem->pnpId = pnpId;
+            if (vendorId) {
+                resultItem->vendorId = vendorId;
+            }
+            if (productId) {
+                resultItem->productId = productId;
+            }
+            resultItem->serialNumber = serialNumber;
+            if (locationId) {
+                resultItem->locationId = locationId;
+            }
+
+            results.push_back(resultItem);
+        } else {
         }
+
+        free(pnpId);
+        free(vendorId);
+        free(productId);
+        free(locationId);
+        free(manufacturer);
+        free(iManufacturer);
+        free(name);
+
+        RegCloseKey(hkey);
+        memberIndex++;
     }
 
-    v8::Local<v8::Value> getReturnValue() override
+    if (hDevInfo) {
+        SetupDiDestroyDeviceInfoList(hDevInfo);
+    }
+}
+
+v8::Local<v8::Value> ListBaton::getReturnValue() override
+{
+
+    v8::Local<v8::Array> results = Nan::New<v8::Array>();
+    int i = 0;
+
+    for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it, i++)
     {
 
-        v8::Local<v8::Array> results = Nan::New<v8::Array>();
-        int i = 0;
+        v8::Local<v8::Object> item = Nan::New<v8::Object>();
 
-        for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it, i++)
-        {
+        setIfNotEmpty(item, "path", (*it)->path.c_str());
+        setIfNotEmpty(item, "manufacturer", (*it)->manufacturer.c_str());
+        setIfNotEmpty(item, "serialNumber", (*it)->serialNumber.c_str());
+        setIfNotEmpty(item, "pnpId", (*it)->pnpId.c_str());
+        setIfNotEmpty(item, "locationId", (*it)->locationId.c_str());
+        setIfNotEmpty(item, "vendorId", (*it)->vendorId.c_str());
+        setIfNotEmpty(item, "productId", (*it)->productId.c_str());
 
-            v8::Local<v8::Object> item = Nan::New<v8::Object>();
-
-            setIfNotEmpty(item, "path", (*it)->path.c_str());
-            setIfNotEmpty(item, "manufacturer", (*it)->manufacturer.c_str());
-            setIfNotEmpty(item, "serialNumber", (*it)->serialNumber.c_str());
-            setIfNotEmpty(item, "pnpId", (*it)->pnpId.c_str());
-            setIfNotEmpty(item, "locationId", (*it)->locationId.c_str());
-            setIfNotEmpty(item, "vendorId", (*it)->vendorId.c_str());
-            setIfNotEmpty(item, "productId", (*it)->productId.c_str());
-
-            Nan::Set(results, i, item);
-        }
-
-        for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it)
-        {
-            delete *it;
-        }
-
-        return results;
+        Nan::Set(results, i, item);
     }
 
-    ~ListBaton()
+    for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it)
     {
-        callback.Reset();
+        delete *it;
     }
-};
+
+    return results;
+}
 
 NAN_METHOD(List)
 {

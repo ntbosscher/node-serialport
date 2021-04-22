@@ -35,7 +35,7 @@ class V8ArgDecoder {
 
     void setError(string value);
     bool checkLengthAndError();
-    Local<Value> V8ArgDecoder::getNext();
+    Local<Value> getNext();
 public:
     V8ArgDecoder(const Nan::FunctionCallbackInfo<Value>* args);
     int takeInt32();

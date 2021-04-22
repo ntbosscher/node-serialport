@@ -11,14 +11,14 @@ public:
         request.data = this;
     }
 
-int fd = 0;
-  int timeout = -1;
-  char* bufferData = nullptr;
-  size_t bufferLength = 0;
-  size_t bytesRead = 0;
-  size_t bytesToRead = 0;
-  size_t offset = 0;
-  bool complete = false;
+    int fd = 0;
+    int timeout = -1;
+    char* bufferData = nullptr;
+    size_t bufferLength = 0;
+    size_t bytesRead = 0;
+    size_t bytesToRead = 0;
+    size_t offset = 0;
+    bool complete = false;
 
     v8::Local<v8::Value> getReturnValue() override;
     void run() override;

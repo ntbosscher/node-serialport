@@ -8,6 +8,14 @@
       '<!(node -e "require(\'nan\')")'
     ],
     'conditions': [
+        ['OS=="mac"', {
+            'sources': [
+                'src/serialport.cpp',
+                'src/util.cpp',
+                'src/BatonBase.cpp',
+                'src/V8ArgDecoder.cpp'
+            ],
+        }],
       ['OS=="win"',
         {
           'sources': [
@@ -15,12 +23,6 @@
             'src/util.cpp',
             'src/BatonBase.cpp',
             'src/win.cpp',
-            'src/ListBaton_win.cpp',
-            'src/OpenBaton_win.cpp',
-            'src/WriteBaton_win.cpp',
-            'src/ReadBaton_win.cpp',
-            'src/UpdateBaton_win.cpp',
-            'src/SetBaton_win.cpp',
             'src/V8ArgDecoder.cpp'
           ],
           'msvs_settings': {

@@ -9,6 +9,7 @@
 #include <chrono>
 #include <mutex>
 #include <sstream>
+#include <string>
 
 const char kPathSeparator =
 #ifdef _WIN32
@@ -44,11 +45,9 @@ void configureLogging(bool _enabled, std::string _dir) {
   muVerboseLogging.unlock();
 }
 
-char *copySubstring(char *someString, int n) {
-    char *new_ = reinterpret_cast<char*>(malloc(sizeof(char)*n + 1));
-    strncpy_s(new_, n + 1, someString, n);
-    new_[n] = '\0';
-    return new_;
+const char *copySubstring(char *someString, int n) {
+    std::string str(someString);
+    return str.substr(0, n).c_str();
 }
 
 void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *value) {
@@ -115,20 +114,6 @@ std::string wStr2Char(wchar_t *buf)
     free(out);
 
     return str;
-}
-
-char* guid2Str(const GUID *id, char *out)
-{
-    int i;
-    char *ret = out;
-    out += sprintf(out, "%.8lX-%.4hX-%.4hX-", id->Data1, id->Data2, id->Data3);
-    for (i = 0; i < sizeof(id->Data4); ++i)
-    {
-        out += sprintf(out, "%.2hhX", id->Data4[i]);
-        if (i == 1)
-            *(out++) = '-';
-    }
-    return ret;
 }
 
 std::ofstream perfLogger;
