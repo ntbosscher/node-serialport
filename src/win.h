@@ -1,5 +1,5 @@
-#ifndef PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_
-#define PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_
+#ifndef WIN_h
+#define WIN_h
 
 #include <nan.h>
 #include <list>

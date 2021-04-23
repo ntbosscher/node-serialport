@@ -1,15 +1,14 @@
-#include "V8ArgDecoder.h"
 
-using namespace std;
-using namespace v8;
+#include <v8.h>
+#include <nan.h>
+#include "./V8ArgDecoder.h"
 
-
-DecodeObject::DecodeObject(Local<Object> _value) {
+DecodeObject::DecodeObject(v8::Local<v8::Object> _value) {
     object = _value;
 }
 
-Local<Value> DecodeObject::getValue(string key) {
-  auto v8str = Nan::New<String>(key).ToLocalChecked();
+v8::Local<v8::Value> DecodeObject::getValue(string key) {
+  auto v8str = Nan::New<v8::String>(key).ToLocalChecked();
   return Nan::Get(object, v8str).ToLocalChecked();
 }
 
@@ -31,11 +30,6 @@ bool DecodeObject::getBool(string key) {
 
 double DecodeObject::getDouble(string key) {
     return Nan::To<double>(this->getValue(key)).FromMaybe(0);
-}
-
-V8ArgDecoder::V8ArgDecoder (const Nan::FunctionCallbackInfo<Value>* _args) {
-    this->args = _args;
-    this->position = 0;
 }
 
 bool V8ArgDecoder::checkLengthAndError() {
@@ -119,7 +113,7 @@ Buffer V8ArgDecoder::takeBuffer() {
         this->setError("Expecting argument 'buffer' at position " + to_string(this->position-1));
         return buffer;
     }
-    
+
     v8::Local<v8::Object> buf = Nan::To<v8::Object>(value).ToLocalChecked();
     buffer.length = node::Buffer::Length(buf);
     buffer.buffer = node::Buffer::Data(buf);
@@ -136,7 +130,7 @@ Local<Function> V8ArgDecoder::takeFunction() {
     {
         this->setError("Expecting argument 'function' at position " + to_string(this->position-1));
         return function;
-    }   
+    }
 
     return Nan::To<v8::Function>(value).ToLocalChecked();
 }

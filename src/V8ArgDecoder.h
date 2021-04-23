@@ -8,6 +8,7 @@
 
 using namespace std;
 using namespace v8;
+using namespace Nan;
 
 struct Buffer {
     char* buffer;
@@ -29,7 +30,7 @@ public:
 };
 
 class V8ArgDecoder {
-    const Nan::FunctionCallbackInfo<Value> *args;
+    const Nan::FunctionCallbackInfo<v8::Value> *args;
     int position;
     string error;
 
@@ -37,7 +38,12 @@ class V8ArgDecoder {
     bool checkLengthAndError();
     Local<Value> getNext();
 public:
-    V8ArgDecoder(const Nan::FunctionCallbackInfo<Value>* args);
+    V8ArgDecoder(const Nan::FunctionCallbackInfo<v8::Value>* args)
+    {
+        this->args = args;
+        this->position = 0;
+    }
+
     int takeInt32();
     Buffer takeBuffer();
     Local<Function> takeFunction();

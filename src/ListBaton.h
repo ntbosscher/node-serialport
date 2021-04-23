@@ -4,6 +4,7 @@
 
 #include <nan.h>
 #include "BatonBase.h"
+#include "./V8ArgDecoder.h"
 #include <list>
 
 struct ListResultItem {
@@ -21,7 +22,9 @@ public:
     std::list<ListResultItem *> results;
 
     ListBaton(v8::Local<v8::Function> callback_) : BatonBase("node-serialport:ListBaton", callback_)
-    {}
+    {
+        logVerbose("ListBaton::constructor");
+    }
 
     v8::Local<v8::Value> getReturnValue() override;
     void run() override;

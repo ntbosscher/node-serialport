@@ -13,7 +13,7 @@
 #include <string>
 #include <nan.h>
 #include <fstream>
-#include "./util.h"
+#include "./Util.h"
 
 void DoAction(uv_work_t* req);
 void AfterAction(uv_work_t* req, int status);
@@ -38,6 +38,11 @@ public:
     void logVerbose(std::string value);
     
     ~BatonBase() {
+        if(this->verbose) {
+            auto out = defaultLogger();
+            out << currentMs() << " " << debugName << " destroy\n";
+        }
+
         callback.Reset();
     }
 };

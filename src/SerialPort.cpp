@@ -1,6 +1,6 @@
-#include "./serialport.h"
+#include "./SerialPort.h"
 #include <fstream>
-#include "./util.h"
+#include "./Util.h"
 #include "./WriteBaton.h"
 #include "./ReadBaton.h"
 #include "./UpdateBaton.h"

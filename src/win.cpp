@@ -1,6 +1,6 @@
-#include "./serialport.h"
+#include "./SerialPort.h"
 #include "./win.h"
-#include "./util.h"
+#include "./Util.h"
 #include <nan.h>
 #include <list>
 #include <vector>

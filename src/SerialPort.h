@@ -6,7 +6,7 @@
 #include <nan.h>
 #include <string>
 #include "./OpenBaton.h"
-#include "./util.h"
+#include "./Util.h"
 
 #define ERROR_STRING_SIZE 1024
 

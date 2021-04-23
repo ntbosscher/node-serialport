@@ -57,7 +57,8 @@ void BatonBase::start() {
         out << currentMs() << " " << debugName << " queue job\n";
         out.close();
     }
-    
+
+    request.data = this;
     uv_queue_work(Nan::GetCurrentEventLoop(), &request, DoAction, reinterpret_cast<uv_after_work_cb>(AfterAction));
 }
 

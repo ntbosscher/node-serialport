@@ -2,7 +2,7 @@
 #include "ReadBaton.h"
 #include <nan.h>
 #include "win.h"
-#include "./util.h"
+#include "./Util.h"
 #include "./V8ArgDecoder.h"
 
 v8::Local<v8::Value> ReadBaton::getReturnValue()
