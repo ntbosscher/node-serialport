@@ -6,8 +6,6 @@
 #include <string>
 #include <thread>
 
-#define ERROR_STRING_SIZE 1024
-
 NAN_METHOD(List);
 void EIO_List(uv_work_t* req);
 void EIO_AfterList(uv_work_t* req);

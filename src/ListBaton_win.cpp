@@ -1,5 +1,5 @@
 #include "./SerialPort.h"
-#include "./win.h"
+#include "./Win.h"
 #include "./Util.h"
 #include "./BatonBase.h"
 #include <nan.h>

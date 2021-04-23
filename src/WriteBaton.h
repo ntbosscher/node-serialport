@@ -3,6 +3,9 @@
 
 #include <nan.h>
 #include "BatonBase.h"
+#include <string>
+#include <v8.h>
+#include <nan.h>
 
 class WriteBaton : public BatonBase {
 private:
@@ -30,5 +33,6 @@ public:
 };
 
 NAN_METHOD(Write);
+int writeToSerial(int fd, char* buffer, int length, bool blocking, char* error);
 
 #endif

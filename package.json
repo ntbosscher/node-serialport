@@ -26,8 +26,9 @@
   "scripts": {
     "install": "prebuild-install --tag-prefix faster-serialport@ || node-gyp rebuild",
     "lint": "cc --verbose",
-    "prebuild": "prebuild --all --force --strip --verbose --tag-prefix faster-serialport@",
-    "rebuild": "node-gyp rebuild --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers"
+    "prebuild": "true || prebuild --all --force --strip --verbose --tag-prefix faster-serialport@",
+    "rebuild": "node-gyp rebuild --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers",
+    "build": "node-gyp build --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers"
   },
   "publishConfig": {
     "access": "public"

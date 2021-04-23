@@ -1,13 +1,8 @@
 
 #include "SetBaton.h"
 #include <nan.h>
-#include "win.h"
+#include "Win.h"
 #include "./V8ArgDecoder.h";
-
-v8::Local<v8::Value> SetBaton::getReturnValue()
-{
-    return Nan::Null();
-}
 
 void SetBaton::run()
 {
@@ -60,26 +55,4 @@ void SetBaton::run()
         ErrorCodeToString("Setting options on COM port (SetCommMask)", GetLastError(), this->errorString);
         return;
     }
-}
-
-NAN_METHOD(Set)
-{
-    V8ArgDecoder args(&info);
-
-    auto fd = args.takeInt32();
-    auto object = args.takeObject();
-    auto cb = args.takeFunction();
-
-    if(args.hasError()) return;
-
-    SetBaton *baton = new SetBaton("SetBaton", cb);
-
-    baton->fd = fd;
-    baton->brk = object.getBool("brk");
-    baton->rts = object.getBool("rts");
-    baton->cts = object.getBool("cts");
-    baton->dtr = object.getBool("dtr");
-    baton->dsr = object.getBool("dsr");
-
-    baton->start();
 }

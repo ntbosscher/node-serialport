@@ -24,6 +24,6 @@ public:
     void run() override;
 };
 
-NAN_METHOD(Set);
+NAN_METHOD(SetParameter);
 
 #endif

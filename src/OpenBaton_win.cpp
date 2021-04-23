@@ -3,11 +3,6 @@
 #include "./Util.h"
 #include "./V8ArgDecoder.h"
 
-v8::Local<v8::Value> OpenBaton::getReturnValue()
-{
-    return Nan::New<v8::Int32>(this->result);
-}
-
 void OpenBaton::run()
 {
     char originalPath[1024];
@@ -161,35 +156,4 @@ void OpenBaton::run()
     PurgeComm(file, PURGE_TXCLEAR);
 
     this->result = static_cast<int>(reinterpret_cast<uintptr_t>(file));
-}
-
-NAN_METHOD(Open)
-{
-    V8ArgDecoder args(&info);
-
-    auto path = args.takeString();
-    auto object = args.takeObject();
-    auto cb = args.takeFunction();
-
-    if(args.hasError()) return;
-
-    OpenBaton *baton = new OpenBaton("OpenBaton", cb);
-    strncpy_s(baton->path, sizeof(baton->path), path.c_str(), _TRUNCATE);
-    baton->baudRate = object.getInt("baudRate");
-    baton->dataBits = object.getInt("dataBits");
-    baton->parity = ToParityEnum(object.getV8String("parity"));
-    baton->stopBits = ToStopBitEnum(object.getDouble("stopBits"));
-    baton->rtscts = object.getBool("rtscts");
-    baton->xon = object.getBool("xon");
-    baton->xoff = object.getBool("xoff");
-    baton->xany = object.getBool("xany");
-    baton->hupcl = object.getBool("hupcl");
-    baton->lock = object.getBool("lock");
-
-#ifndef WIN32
-    baton->vmin = object.getInt("vmin");
-    baton->vtime = object.getInt("vtime");
-#endif
-
-    baton->start();
 }
