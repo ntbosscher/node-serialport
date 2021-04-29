@@ -3,7 +3,7 @@
 
 This is a stripped down, more performant version of [node-serialport](https://github.com/serialport/node-serialport). Actually works normally with Electron.
 
-Currently only supports windows.
+Currently only supports windows and mac.
 
 ## API 
 ```js
