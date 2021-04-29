@@ -38,7 +38,7 @@ enum SerialPortStopBits {
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr);
 
 void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *value);
-const char *copySubstring(const char *someString, int n);
+char *copySubstring(char *someString, int n);
 
 v8::Local<v8::Value> getValueFromObject(v8::Local<v8::Object> options, std::string key);
 int getIntFromObject(v8::Local<v8::Object> options, std::string key);

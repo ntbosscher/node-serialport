@@ -535,8 +535,8 @@ void ListBaton::run() {
     DWORD dwSize, dwPropertyRegDataType;
     char szBuffer[MAX_BUFFER_SIZE];
     char *pnpId;
-    const char *vendorId;
-    const char *productId;
+    char *vendorId;
+    char *productId;
     char *name;
     char *manufacturer;
     char *iManufacturer;
@@ -545,6 +545,7 @@ void ListBaton::run() {
     bool isCom;
 
     while (true) {
+
         pnpId = NULL;
         vendorId = NULL;
         productId = NULL;
@@ -577,6 +578,7 @@ void ListBaton::run() {
             vendorId += 4;
             vendorId = copySubstring(vendorId, 4);
         }
+        
         productId = strstr(szBuffer, "PID_");
         if (productId) {
             productId += 4;
@@ -644,8 +646,8 @@ void ListBaton::run() {
         }
 
         free(pnpId);
-        free((char*)vendorId);
-        free((char*)productId);
+        free(vendorId);
+        free(productId);
         free(locationId);
         free(manufacturer);
         free(iManufacturer);

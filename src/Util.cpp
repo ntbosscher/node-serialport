@@ -38,9 +38,13 @@ void configureLogging(bool _enabled, std::string _dir) {
   muVerboseLogging.unlock();
 }
 
-const char *copySubstring(const char *someString, int n) {
+char *copySubstring(char *someString, int n) {
     std::string str(someString);
-    return str.substr(0, n).c_str();
+    str = str.substr(0, n);
+
+    char *cstr = (char*)malloc(sizeof(char) * (str.length() + 1));
+    strcpy(cstr, str.c_str());
+    return cstr;
 }
 
 void setIfNotEmpty(v8::Local<v8::Object> item, std::string key, const char *value) {
