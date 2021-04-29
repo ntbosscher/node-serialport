@@ -44,16 +44,11 @@
       ['OS=="win"',
         {
           'sources': [
-            'src/darwin.cpp',
-            'src/ListBaton_darwin.cpp',
-
-            'src/V8ArgDecoder.cpp',
-            'src/SerialPort.cpp',
-            'src/util.cpp',
-            'src/BatonBase.cpp',
-            'src/ListBaton.cpp',
-
             'src/win.cpp',
+            'src/Close_win.cpp',
+            'src/Drain_win.cpp',
+            'src/Flush_win.cpp',
+            'src/Get_win.cpp',
             'src/UpdateBaton_win.cpp',
             'src/WriteBaton_win.cpp',
             'src/SetBaton_win.cpp',

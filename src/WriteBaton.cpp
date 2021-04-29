@@ -2,6 +2,7 @@
 #include "./WriteBaton.h"
 #include "./V8ArgDecoder.h"
 #include <sstream>
+#include <iomanip>
 #include "./ReadBaton.h"
 
 v8::Local<v8::Value> WriteBaton::getReturnValue()

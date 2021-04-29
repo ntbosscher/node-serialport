@@ -3,7 +3,7 @@
 #define UpdateBaton_h
 
 #include <nan.h>
-#include "Util.h"
+#include "./Util.h"
 #include "BatonBase.h"
 
 class UpdateBaton : public BatonBase

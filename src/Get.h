@@ -1,7 +1,7 @@
 
 #include <v8.h>
 #include <nan.h>
-#include "Util.h"
+#include "./Util.h"
 
 #ifndef FASTER_SERIALPORT_GET_H
 #define FASTER_SERIALPORT_GET_H

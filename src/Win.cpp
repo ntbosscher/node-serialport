@@ -1,6 +1,7 @@
 #include "./SerialPort.h"
 #include "./Win.h"
 #include "./Util.h"
+#include "./GetBaudRate.h"
 #include <nan.h>
 #include <list>
 #include <vector>
@@ -17,8 +18,6 @@
 #include <condition_variable>
 #include <mutex>
 #pragma comment(lib, "setupapi.lib")
-
-std::list<int> g_closingHandles;
 
 void ErrorCodeToString(const char* prefix, int errorCode, char *errorStr) {
 
@@ -64,15 +63,5 @@ void EIO_GetBaudRate(uv_work_t* req) {
   }
 
   data->baudRate = static_cast<int>(dcb.BaudRate);
-}
-
-bool IsClosingHandle(int fd) {
-  for (std::list<int>::iterator it = g_closingHandles.begin(); it != g_closingHandles.end(); ++it) {
-    if (fd == *it) {
-      g_closingHandles.remove(fd);
-      return true;
-    }
-  }
-  return false;
 }
 

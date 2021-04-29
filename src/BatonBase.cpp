@@ -1,4 +1,4 @@
-#include "./BatonBase.h";
+#include "./BatonBase.h"
 
 void DoAction(uv_work_t* req) {
     auto baton = static_cast<BatonBase*>(req->data);

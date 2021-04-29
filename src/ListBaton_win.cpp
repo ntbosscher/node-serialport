@@ -535,8 +535,8 @@ void ListBaton::run() {
     DWORD dwSize, dwPropertyRegDataType;
     char szBuffer[MAX_BUFFER_SIZE];
     char *pnpId;
-    char *vendorId;
-    char *productId;
+    const char *vendorId;
+    const char *productId;
     char *name;
     char *manufacturer;
     char *iManufacturer;
@@ -644,8 +644,8 @@ void ListBaton::run() {
         }
 
         free(pnpId);
-        free(vendorId);
-        free(productId);
+        free((char*)vendorId);
+        free((char*)productId);
         free(locationId);
         free(manufacturer);
         free(iManufacturer);

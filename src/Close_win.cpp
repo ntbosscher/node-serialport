@@ -1,8 +1,22 @@
+#include "./VoidBaton.h"
+#include "./Util.h"
 
 #ifdef WIN32
 #define strncasecmp strnicmp
   #include "./win.h"
 #endif
+
+std::list<int> g_closingHandles;
+
+bool IsClosingHandle(int fd) {
+  for (std::list<int>::iterator it = g_closingHandles.begin(); it != g_closingHandles.end(); ++it) {
+    if (fd == *it) {
+      g_closingHandles.remove(fd);
+      return true;
+    }
+  }
+  return false;
+}
 
 void EIO_Close(uv_work_t* req) {
     VoidBaton* data = static_cast<VoidBaton*>(req->data);

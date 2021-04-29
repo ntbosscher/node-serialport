@@ -1,6 +1,7 @@
 
 #include "./Flush.h"
 #include "./VoidBaton.h"
+#include "./Win.h"
 
 void EIO_Flush(uv_work_t* req) {
     VoidBaton* data = static_cast<VoidBaton*>(req->data);

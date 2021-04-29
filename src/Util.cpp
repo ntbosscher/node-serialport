@@ -1,11 +1,4 @@
-//
-//  util.cpp
-//  
-//
-//  Created by nate bosscher on 2020-11-18.
-//
-
-#include "Util.h"
+#include "./Util.h"
 #include <chrono>
 #include <mutex>
 #include <sstream>
@@ -45,7 +38,7 @@ void configureLogging(bool _enabled, std::string _dir) {
   muVerboseLogging.unlock();
 }
 
-const char *copySubstring(char *someString, int n) {
+const char *copySubstring(const char *someString, int n) {
     std::string str(someString);
     return str.substr(0, n).c_str();
 }
