@@ -78,7 +78,7 @@ Reloading the page via `location.reload()` or `location = "/"` fixes this issue.
 
 ### Electron: Error: Could not locate the bindings file. Tried:...
 
-Ensure you have `electron-builder` setup correctly.
+1. Ensure you have `electron-builder` setup correctly.
 
 e.g. package.json
 ```
@@ -88,3 +88,5 @@ e.g. package.json
      }
 }
 ```
+
+2. Symbolicly link `<project-root>/build/faster-serial-port.node` => `build/Release/faster-serial-port.node` (fixes electron issue with `bindings` root issue)

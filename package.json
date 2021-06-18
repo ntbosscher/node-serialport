@@ -24,10 +24,10 @@
     "node": ">=8.6.0"
   },
   "scripts": {
+    "build": "node-gyp build",
     "install": "prebuild-install --tag-prefix faster-serialport@ || node-gyp rebuild",
     "lint": "cc --verbose",
-    "rebuild": "node-gyp rebuild --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers",
-    "build": "node-gyp build --target=11.0.1 --arch=x64 --dist-url=https://electronjs.org/headers"
+    "rebuild": "node-gyp rebuild"
   },
   "publishConfig": {
     "access": "public"

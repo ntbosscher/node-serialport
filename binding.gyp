@@ -1,6 +1,6 @@
 {
   'targets': [{
-    'target_name': 'bindings',
+    'target_name': 'faster-serial-port',
     'win_delay_load_hook': 'true',
     'sources': [
         'src/Drain.cpp',
