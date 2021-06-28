@@ -166,9 +166,11 @@ void _eventWatcher(DeviceWatcher *baton) {
   auto file = baton->file;
   auto verbose = baton->verbose;
 
-  auto out = defaultLogger();
-  out << currentMs() << " _eventWatcher: thread started (handle=" << file << ")\n";
-  out.close();
+  if(verbose) {
+    auto out = defaultLogger();
+    out << currentMs() << " _eventWatcher: thread started (handle=" << file << ")\n";
+    out.close();
+  }
 
   auto deadline = currentMs() + 5000;
 
