@@ -1,7 +1,21 @@
 export default class FasterSerialPort {
     isOpen: boolean;
   
-    constructor(path: string, options: any);
+    constructor(path: string, options: Partial<{
+      autoOpen: boolean;
+      endOnClose: boolean;
+      baudRate: number;
+      dataBits: number;
+      hupcl: boolean;
+      lock: boolean;
+      parity: "none";
+      rtscts: boolean;
+      stopBits: number;
+      xany: boolean;
+      xoff: boolean;
+      xon: boolean;
+      eventsCallback: (err: string | null, arg: {event?: number, errorCode?: number}) => void;
+    }>);
   
     write(buf: Buffer | number[], echoMode: boolean = false): Promise<void>;
     read(nBytes: number): Promise<Buffer>;

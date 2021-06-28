@@ -39,6 +39,7 @@
                 'src/SetBaton_darwin.cpp',
                 'src/UpdateBaton_darwin.cpp',
                 'src/WriteBaton_darwin.cpp',
+                'src/EventWatcher_darwin.cpp',
             ],
         }],
       ['OS=="win"',
@@ -55,6 +56,7 @@
             'src/ReadBaton_win.cpp',
             'src/OpenBaton_win.cpp',
             'src/ListBaton_win.cpp',
+            'src/EventWatcher_win.cpp',
           ],
           'msvs_settings': {
             'VCCLCompilerTool': {

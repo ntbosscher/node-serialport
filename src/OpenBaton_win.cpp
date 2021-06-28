@@ -3,6 +3,7 @@
 #include "./Util.h"
 #include "./V8ArgDecoder.h"
 #include "./Win.h"
+#include "./EventWatcher.h"
 
 void OpenBaton::run()
 {
