@@ -2,6 +2,7 @@
 #include "./OpenBaton.h"
 #include "./Util.h"
 #include "./V8ArgDecoder.h"
+#include "./Win.h"
 
 void OpenBaton::run()
 {
@@ -156,4 +157,8 @@ void OpenBaton::run()
     PurgeComm(file, PURGE_TXCLEAR);
 
     this->result = static_cast<int>(reinterpret_cast<uintptr_t>(file));
+
+    markPortAsOpen(file);
+    this->watcher->file = file;
+    EventWatcher(this->watcher);
 }

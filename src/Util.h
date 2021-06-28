@@ -31,6 +31,12 @@ enum SerialPortStopBits {
   SERIALPORT_STOPBITS_TWO      = 3
 };
 
+struct DeviceWatcher {
+  bool verbose;
+  HANDLE file;
+  Nan::Persistent<v8::Function> eventsCallback;
+};
+
 #define TIMEOUT_PRECISION 10
 #define ERROR_STRING_SIZE 1024
 #define ARRAY_SIZE(arr)     (sizeof(arr)/sizeof(arr[0]))
@@ -59,5 +65,9 @@ void configureLogging(bool _enabled, std::string _dir);
 bool verboseLoggingEnabled();
 
 std::string bufferToHex(char* buffer, int len);
+
+void markPortAsClosed(HANDLE file);
+void markPortAsOpen(HANDLE file);
+bool portIsActive(DeviceWatcher *baton);
 
 #endif /* util_hpp */

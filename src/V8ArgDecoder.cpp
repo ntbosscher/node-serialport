@@ -32,6 +32,11 @@ double DecodeObject::getDouble(string key) {
     return Nan::To<double>(this->getValue(key)).FromMaybe(0);
 }
 
+v8::Local<v8::Function> DecodeObject::getFunction(string key) {
+    return Nan::To<v8::Function>(this->getValue(key)).ToLocalChecked();
+}
+
+
 bool V8ArgDecoder::checkLengthAndError() {
     if(!error.empty()) return false; // has existing error
     if(position < args->Length()) return true;

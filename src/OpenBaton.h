@@ -74,6 +74,9 @@ public:
 
     SerialPortParity parity;
     SerialPortStopBits stopBits;
+
+    DeviceWatcher *watcher;
+    
 #ifndef WIN32
     uint8_t vmin = 0;
     uint8_t vtime = 0;

@@ -20,8 +20,9 @@ bool IsClosingHandle(int fd) {
 
 void EIO_Close(uv_work_t* req) {
     VoidBaton* data = static_cast<VoidBaton*>(req->data);
-
     g_closingHandles.push_back(data->fd);
+
+    markPortAsOpen((HANDLE)data->fd);
 
     HMODULE hKernel32 = LoadLibrary("kernel32.dll");
     // Look up function address

@@ -45,14 +45,14 @@ void ReadBaton::run()
     int start = currentMs();
     int deadline = start + this->timeout;
 
+    if(verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " expecting=" << bytesToRead << " have=" << bytesRead << " blocking=" << true << " \n";
+        out.close();
+    }
+
     do
     {
-        if(verbose) {
-            auto out = defaultLogger();
-            out << currentMs() << " " << debugName << " expecting=" << bytesToRead << " have=" << bytesRead << " blocking=" << true << " \n";
-            out.close();
-        }
-
         char *buffer = bufferData + offset;
 
         auto bytesTransferred = readFromSerial(fd, buffer, bytesToRead, true, errorString);
@@ -66,14 +66,19 @@ void ReadBaton::run()
         offset += bytesTransferred;
         complete = bytesToRead == 0;
 
-        if(verbose) {
+        if(complete && verbose) {
             auto out = defaultLogger();
-            out << currentMs() << " " << debugName << " got " << bytesTransferred << "bytes\n";
-            out << currentMs() << " " << debugName << " buffer-contents: " << bufferToHex(bufferData, bytesRead);
-
+            out << currentMs() << " " << debugName << " got " << bytesTransferred << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
             out << "\n";
             out.close();
         }
 
     } while (!complete && currentMs() < deadline);
+
+    if(!complete) {
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " got " << bytesRead << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
+        out << "\n";
+        out.close();
+    }
 }

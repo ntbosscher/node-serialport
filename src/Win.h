@@ -5,6 +5,7 @@
 #include <list>
 #include <v8.h>
 #include <string>
+#include "./Util.h"
 
 #define MAX_BUFFER_SIZE 1000
 
@@ -22,3 +23,5 @@ void EIO_List(uv_work_t* req);
 void EIO_AfterList(uv_work_t* req);
 
 #endif  // PACKAGES_SERIALPORT_SRC_SERIALPORT_WIN_H_
+
+void EventWatcher(DeviceWatcher *baton);

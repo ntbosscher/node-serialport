@@ -25,6 +25,7 @@ public:
     int getInt(string key);
     double getDouble(string key);
     Local<Value> getValue(string key);
+    Local<Function> getFunction(string key);
 
     bool hasKey(string key);
 };
