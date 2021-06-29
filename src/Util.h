@@ -17,6 +17,10 @@
     #define strncasecmp strnicmp
 #endif
 
+#if __APPLE__
+typedef void *HANDLE;
+#endif
+
 enum SerialPortParity {
   SERIALPORT_PARITY_NONE  = 1,
   SERIALPORT_PARITY_MARK  = 2,
