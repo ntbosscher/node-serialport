@@ -40,7 +40,7 @@ public:
     ~BatonBase() {
         if(this->verbose) {
             auto out = defaultLogger();
-            out << currentMs() << " " << debugName << " destroy\n";
+            out << currentMs() << " " << (void*)this << " " << debugName << " destroy\n";
         }
 
         callback.Reset();

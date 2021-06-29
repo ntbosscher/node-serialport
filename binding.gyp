@@ -19,6 +19,7 @@
         'src/Close.cpp',
         'src/ConfigureLogging.cpp',
         'src/SerialPort.cpp',
+        'src/EventWatcher.cpp',
     ],
     'include_dirs': [
       '<!(node -e "require(\'nan\')")'

@@ -144,27 +144,3 @@ void logPerf(std::string value) {
 
   muPerfLogger.unlock();
 }
-
-std::mutex muActivePorts;
-std::set<HANDLE> activePorts;
-
-void markPortAsOpen(HANDLE file) {
-  muActivePorts.lock();
-  activePorts.insert(file);
-  muActivePorts.unlock();
-}
-
-void markPortAsClosed(HANDLE file) {
-  muActivePorts.lock();
-  activePorts.erase(file);
-  muActivePorts.unlock();
-}
-
-bool portIsActive(DeviceWatcher *baton) {
-  
-  muActivePorts.lock();
-  auto active = activePorts.find(baton->file) != activePorts.end();
-  muActivePorts.unlock();
-
-  return active;
-}

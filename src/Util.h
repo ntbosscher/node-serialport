@@ -17,10 +17,6 @@
     #define strncasecmp strnicmp
 #endif
 
-#if __APPLE__
-typedef void *HANDLE;
-#endif
-
 enum SerialPortParity {
   SERIALPORT_PARITY_NONE  = 1,
   SERIALPORT_PARITY_MARK  = 2,
@@ -33,12 +29,6 @@ enum SerialPortStopBits {
   SERIALPORT_STOPBITS_ONE      = 1,
   SERIALPORT_STOPBITS_ONE_FIVE = 2,
   SERIALPORT_STOPBITS_TWO      = 3
-};
-
-struct DeviceWatcher {
-  bool verbose;
-  HANDLE file;
-  Nan::Persistent<v8::Function> eventsCallback;
 };
 
 #define TIMEOUT_PRECISION 10
@@ -69,9 +59,5 @@ void configureLogging(bool _enabled, std::string _dir);
 bool verboseLoggingEnabled();
 
 std::string bufferToHex(char* buffer, int len);
-
-void markPortAsClosed(HANDLE file);
-void markPortAsOpen(HANDLE file);
-bool portIsActive(DeviceWatcher *baton);
 
 #endif /* util_hpp */

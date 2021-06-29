@@ -1,21 +1,8 @@
 #include "./BatonBase.h"
 
 void DoAction(uv_work_t* req) {
-    auto baton = static_cast<BatonBase*>(req->data);
-    
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " run job\n";
-        out.close();
-    }
-    
+    auto baton = static_cast<BatonBase*>(req->data);    
     baton->run();
-
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " run finished\n";
-        out.close();
-    }
 }
 
 void AfterAction(uv_work_t* req, int status) {
@@ -23,12 +10,6 @@ void AfterAction(uv_work_t* req, int status) {
     auto baton = static_cast<BatonBase*>(req->data);
     if(status == UV_ECANCELED) {
         strcpy(baton->errorString, "Job cancelled by libuv");
-    }
-    
-    if(baton->verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << baton->debugName << " after job\n";
-        out.close();
     }
     
     baton->done();
@@ -39,7 +20,7 @@ void BatonBase::logVerbose(std::string input) {
     if(!verbose) return;
 
     auto out = defaultLogger();
-    out << std::to_string(currentMs()) << " " << debugName << " " << input << "\n";
+    out << std::to_string(currentMs()) << " " << (void*)this << " " << debugName << " " << input << "\n";
     out.close();
 }
 
@@ -52,12 +33,6 @@ BatonBase::BatonBase(char* name, v8::Local<v8::Function> callback_): AsyncResour
 }
 
 void BatonBase::start() {
-    if(verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << debugName << " queue job\n";
-        out.close();
-    }
-
     request.data = this;
     uv_queue_work(Nan::GetCurrentEventLoop(), &request, DoAction, reinterpret_cast<uv_after_work_cb>(AfterAction));
 }
@@ -72,11 +47,6 @@ v8::Local<v8::Value> BatonBase::getReturnValue() {
 }
 
 void BatonBase::done() {
-    if(verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << debugName << " formatting response\n";
-        out.close();
-    }
     
     v8::Local<v8::Function> callback_ = Nan::New(callback);
     v8::Local<v8::Object> target = Nan::New<v8::Object>();
@@ -92,10 +62,4 @@ void BatonBase::done() {
     }
     
     runInAsyncScope(target, callback_, 2, argv);
-    
-    if(verbose) {
-        auto out = defaultLogger();
-        out << currentMs() << " " << debugName << " sent-to-js\n";
-        out.close();
-    }
 }

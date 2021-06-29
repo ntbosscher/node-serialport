@@ -3,7 +3,7 @@
 #define openbaton_h
 
 #include <nan.h>
-#include "Util.h"
+#include "EventWatcher.h"
 #include "BatonBase.h"
 
 SerialPortParity ToParityEnum(const v8::Local<v8::String>& str);

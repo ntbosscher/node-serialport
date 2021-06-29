@@ -21,6 +21,12 @@ void OpenBaton::run()
         shareMode = 0;
     }
 
+    if(this->verbose) {
+        auto out = defaultLogger();
+        out << currentMs() << " OpenBaton " << this->path << "\n";
+        out.close();
+    }
+
     HANDLE file = CreateFile(
         this->path,
         GENERIC_READ | GENERIC_WRITE,
@@ -38,6 +44,8 @@ void OpenBaton::run()
         ErrorCodeToString(temp, errorCode, this->errorString);
         return;
     }
+
+    this->logVerbose(std::to_string((int)file) + " opened file");
 
     DCB dcb = {0};
     SecureZeroMemory(&dcb, sizeof(DCB));
@@ -157,9 +165,9 @@ void OpenBaton::run()
     PurgeComm(file, PURGE_RXCLEAR);
     PurgeComm(file, PURGE_TXCLEAR);
 
+
     this->result = static_cast<int>(reinterpret_cast<uintptr_t>(file));
 
-    markPortAsOpen(file);
     this->watcher->file = file;
-    EventWatcher(this->watcher);
+    markPortAsOpen(file, EventWatcher(this->watcher));
 }

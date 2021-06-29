@@ -1,4 +1,5 @@
 #include "./VoidBaton.h"
+#include "./EventWatcher.h"
 #include "./Util.h"
 
 #ifdef WIN32
@@ -22,7 +23,7 @@ void EIO_Close(uv_work_t* req) {
     VoidBaton* data = static_cast<VoidBaton*>(req->data);
     g_closingHandles.push_back(data->fd);
 
-    markPortAsOpen((HANDLE)data->fd);
+    markPortAsClosed((HANDLE)data->fd);
 
     HMODULE hKernel32 = LoadLibrary("kernel32.dll");
     // Look up function address
@@ -33,6 +34,13 @@ void EIO_Close(uv_work_t* req) {
         // Cancel all pending IO Requests for the current device
         pCancelIoEx(int2handle(data->fd), NULL);
     }
+
+    if(verboseLoggingEnabled()) {
+      auto out = defaultLogger();
+      out << currentMs() << " CloseBaton " << std::to_string(data->fd) + " closing file\n";
+      out.close();
+    }
+
     if (!CloseHandle(int2handle(data->fd))) {
         ErrorCodeToString("Closing connection (CloseHandle)", GetLastError(), data->errorString);
         return;

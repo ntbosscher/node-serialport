@@ -56,7 +56,7 @@ void _eventWatcherEmit(EventWatcherInfo *result) {
 
 int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
   for(;;) {
-    switch(WaitForSingleObject(ov->hEvent, 1000)) {
+    switch(WaitForSingleObject(ov->hEvent, 50)) {
       case WAIT_ABANDONED:
         return -1;
       case WAIT_TIMEOUT:
@@ -204,6 +204,7 @@ void _eventWatcher(DeviceWatcher *baton) {
   }
 }
 
-void EventWatcher(DeviceWatcher *baton) {
+std::thread EventWatcher(DeviceWatcher *baton) {
   std::thread t(_eventWatcher, baton);
+  return t;
 }

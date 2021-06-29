@@ -4,6 +4,7 @@
 
 v8::Local<v8::Value> OpenBaton::getReturnValue()
 {
+    this->logVerbose("return");
     return Nan::New<v8::Int32>(this->result);
 }
 
@@ -54,5 +55,6 @@ NAN_METHOD(Open)
         baton->vtime = object.getInt("vtime");
 #endif
 
+        baton->logVerbose("open-start");
         baton->start();
 }
