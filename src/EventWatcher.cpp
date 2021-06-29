@@ -20,8 +20,13 @@ void markPortAsClosed(HANDLE file) {
   activePorts.erase(file);
   muActivePorts.unlock();
 
-  if(threadIsValid && pair->second->joinable()) {
-      pair->second->join();
+  try {
+    if(threadIsValid && pair->second->joinable()) {
+        pair->second->join();
+    }
+  } catch (...) {
+    // sometimes on windows we get a NO_SUCH_PROCESS error here
+    // ignore and carry on
   }
 }
 
