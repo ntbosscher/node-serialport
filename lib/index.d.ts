@@ -22,6 +22,7 @@ export default class FasterSerialPort {
     setTimeout(ms: number): void;
     close(): Promise<void>;
     open(): Promise<void>;
+    flush(): Promise<void>;
     update(opts: {
       baudRate:
         | 115200
