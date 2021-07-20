@@ -61,9 +61,11 @@ int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
         return -1;
       case WAIT_TIMEOUT:
         if(verbose) {
+          muLogger.lock();
           auto out = defaultLogger();
           out << currentMs() << " _eventWatcher: wait timeout\n";
           out.close();
+          muLogger.unlock();
         }
         
         return 0;
@@ -72,9 +74,11 @@ int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
         ErrorCodeToString("WaitForSingleObject", GetLastError(), error);
 
         if(verbose) {
+          muLogger.lock();
           auto out = defaultLogger();
           out << currentMs() << " _eventWatcher: WaitForSingleObject received error " << error << "\n";
           out.close();
+          muLogger.unlock();
         }
 
         return -1;
@@ -86,9 +90,11 @@ int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
             ErrorCodeToString("GetOverlappedResult", GetLastError(), error);
 
             if(verbose) {
+              muLogger.lock();
               auto out = defaultLogger();
               out << currentMs() << " _eventWatcher: GetOverlappedResult received error " << error << "\n";
               out.close();
+              muLogger.unlock();
             }
 
             return -1;
@@ -114,9 +120,11 @@ void _eventWatcher(DeviceWatcher *baton) {
   auto verbose = baton->verbose;
 
   if(verbose) {
+    muLogger.lock();
     auto out = defaultLogger();
     out << currentMs() << " _eventWatcher: thread started (handle=" << file << ")\n";
     out.close();
+    muLogger.unlock();
   }
 
   auto deadline = currentMs() + 5000;
@@ -134,9 +142,11 @@ void _eventWatcher(DeviceWatcher *baton) {
     result->ErrorCode = error;
 
     if(verbose) {
+      muLogger.lock();
       auto out = defaultLogger();
       out << currentMs() << " _eventWatcher: SetCommMask received error " << result->Error << "\n";
       out.close();
+      muLogger.unlock();
     }
 
     _eventWatcherEmit(result);
@@ -165,9 +175,11 @@ void _eventWatcher(DeviceWatcher *baton) {
           result->ErrorCode = error;
 
           if(verbose) {
+            muLogger.lock();
             auto out = defaultLogger();
             out << currentMs() << " _eventWatcher: WaitCommEvent received error " << result->Error << "\n";
             out.close();
+            muLogger.unlock();
           }
 
           _eventWatcherEmit(result);
@@ -198,9 +210,11 @@ void _eventWatcher(DeviceWatcher *baton) {
   }
 
   if(verbose) {
+    muLogger.lock();
     auto out = defaultLogger();
     out << currentMs() << " _eventWatcher: exited\n";
     out.close();
+    muLogger.unlock();
   }
 }
 

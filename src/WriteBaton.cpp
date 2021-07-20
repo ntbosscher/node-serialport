@@ -19,10 +19,12 @@ string char2hex(char c)
 
 void WriteBaton::writeEcho(int deadline) {
     if(verbose) {
+        muLogger.lock();
         auto out = defaultLogger();
         out << currentMs() << " " << debugName << " to-write=" << (bufferLength - offset) << " blocking=" << true << " echoMode=" << echoMode << "\n";
         out << currentMs() << " " << debugName << " buffer-contents: " << bufferToHex(bufferData, (bufferLength - offset)) << "\n";
         out.close();
+        muLogger.unlock();
     }
 
     char readBuffer[1];
@@ -81,10 +83,12 @@ void WriteBaton::writeNormal(int deadline) {
     do
     {
         if(verbose) {
+            muLogger.lock();
             auto out = defaultLogger();
             out << currentMs() << " " << debugName << " to-write=" << (bufferLength - offset) << " blocking=" << true << " echoMode=" << echoMode << "\n";
             out << currentMs() << " " << debugName << " buffer-contents: " << bufferToHex(bufferData, (bufferLength - offset)) << "\n";
             out.close();
+            muLogger.unlock();
         }
 
         char *buffer = bufferData + offset;
@@ -97,9 +101,11 @@ void WriteBaton::writeNormal(int deadline) {
         }
 
         if(verbose) {
+            muLogger.lock();
             auto out = defaultLogger();
             out << currentMs() << " " << debugName << " wrote-len=" << bytesTransferred << " \n";
             out.close();
+            muLogger.unlock();
         }
 
         offset += bytesTransferred;

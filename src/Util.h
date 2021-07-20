@@ -12,10 +12,13 @@
 #include <fstream>
 #include <nan.h>
 #include <string.h>
+#include <mutex>
 
 #ifdef WIN32
     #define strncasecmp strnicmp
 #endif
+
+extern std::mutex muLogger;
 
 enum SerialPortParity {
   SERIALPORT_PARITY_NONE  = 1,

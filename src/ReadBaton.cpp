@@ -46,9 +46,11 @@ void ReadBaton::run()
     int deadline = start + this->timeout;
 
     if(verbose) {
+        muLogger.lock();
         auto out = defaultLogger();
         out << currentMs() << " " << debugName << " expecting=" << bytesToRead << " have=" << bytesRead << " blocking=" << true << " \n";
         out.close();
+        muLogger.unlock();
     }
 
     do
@@ -67,18 +69,22 @@ void ReadBaton::run()
         complete = bytesToRead == 0;
 
         if(complete && verbose) {
+            muLogger.lock();
             auto out = defaultLogger();
             out << currentMs() << " " << debugName << " got " << bytesTransferred << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
             out << "\n";
             out.close();
+            muLogger.unlock();
         }
 
     } while (!complete && currentMs() < deadline);
 
     if(!complete) {
+        muLogger.lock();
         auto out = defaultLogger();
         out << currentMs() << " " << debugName << " got " << bytesRead << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
         out << "\n";
         out.close();
+        muLogger.unlock();
     }
 }

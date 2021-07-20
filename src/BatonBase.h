@@ -39,8 +39,11 @@ public:
     
     ~BatonBase() {
         if(this->verbose) {
+            muLogger.lock();
             auto out = defaultLogger();
             out << currentMs() << " " << (void*)this << " " << debugName << " destroy\n";
+            out.close();
+            muLogger.unlock();
         }
 
         callback.Reset();

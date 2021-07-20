@@ -22,9 +22,11 @@ void OpenBaton::run()
     }
 
     if(this->verbose) {
+        muLogger.lock();
         auto out = defaultLogger();
         out << currentMs() << " OpenBaton " << this->path << "\n";
         out.close();
+        muLogger.unlock();
     }
 
     HANDLE file = CreateFile(

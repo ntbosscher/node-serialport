@@ -36,9 +36,11 @@ void EIO_Close(uv_work_t* req) {
     }
 
     if(verboseLoggingEnabled()) {
+      muLogger.lock();
       auto out = defaultLogger();
       out << currentMs() << " CloseBaton " << std::to_string(data->fd) + " closing file\n";
       out.close();
+      muLogger.unlock();
     }
 
     if (!CloseHandle(int2handle(data->fd))) {

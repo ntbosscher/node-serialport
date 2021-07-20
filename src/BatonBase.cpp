@@ -19,9 +19,13 @@ void AfterAction(uv_work_t* req, int status) {
 void BatonBase::logVerbose(std::string input) {
     if(!verbose) return;
 
+    muLogger.lock();
+
     auto out = defaultLogger();
     out << std::to_string(currentMs()) << " " << (void*)this << " " << debugName << " " << input << "\n";
     out.close();
+
+    muLogger.unlock();
 }
 
 

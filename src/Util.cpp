@@ -15,6 +15,7 @@ const char kPathSeparator =
 bool enableVerboseLogging;
 std::string loggingDirectory = "";
 std::mutex muVerboseLogging;
+std::mutex muLogger;
 
 bool verboseLoggingEnabled() {
   muVerboseLogging.lock();
