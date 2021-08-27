@@ -1,40 +1,16 @@
 #include "./VoidBaton.h"
 #include "./EventWatcher.h"
 #include "./Util.h"
+#include "./Close.h"
 
 #ifdef WIN32
 #define strncasecmp strnicmp
   #include "./win.h"
 #endif
 
-std::list<int> g_closingHandles;
-
-bool IsClosingHandle(int fd) {
-  for (std::list<int>::iterator it = g_closingHandles.begin(); it != g_closingHandles.end(); ++it) {
-    if (fd == *it) {
-      g_closingHandles.remove(fd);
-      return true;
-    }
-  }
-  return false;
-}
-
 void EIO_Close(uv_work_t* req) {
     VoidBaton* data = static_cast<VoidBaton*>(req->data);
-    g_closingHandles.push_back(data->fd);
-
-    markPortAsClosed((HANDLE)data->fd);
-
-    HMODULE hKernel32 = LoadLibrary("kernel32.dll");
-    // Look up function address
-    CancelIoExType pCancelIoEx = (CancelIoExType)GetProcAddress(hKernel32, "CancelIoEx");
-    // Do something with it
-    if (pCancelIoEx) {
-        // Function exists so call it
-        // Cancel all pending IO Requests for the current device
-        pCancelIoEx(int2handle(data->fd), NULL);
-    }
-
+    
     if(verboseLoggingEnabled()) {
       muLogger.lock();
       auto out = defaultLogger();
@@ -43,8 +19,26 @@ void EIO_Close(uv_work_t* req) {
       muLogger.unlock();
     }
 
-    if (!CloseHandle(int2handle(data->fd))) {
+    if (!ClosePort(int2handle(data->fd))) {
         ErrorCodeToString("Closing connection (CloseHandle)", GetLastError(), data->errorString);
         return;
     }
+
+    markPortAsClosed((HANDLE)data->fd);
+}
+
+bool ClosePort(HANDLE fd) {
+  HMODULE hKernel32 = LoadLibrary("kernel32.dll");
+
+  // Look up function address
+  CancelIoExType pCancelIoEx = (CancelIoExType)GetProcAddress(hKernel32, "CancelIoEx");
+
+  // Do something with it
+  if (pCancelIoEx) {
+      // Function exists so call it
+      // Cancel all pending IO Requests for the current device
+      pCancelIoEx(fd, NULL);
+  }
+
+  return CloseHandle(fd);
 }

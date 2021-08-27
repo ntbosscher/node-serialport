@@ -4,6 +4,7 @@
 #include "./V8ArgDecoder.h"
 #include "./Win.h"
 #include "./EventWatcher.h"
+#include "./Close.h"
 
 void OpenBaton::run()
 {
@@ -14,6 +15,45 @@ void OpenBaton::run()
     strncpy(this->path + 20, this->path, 10);
     strncpy(this->path, "\\\\.\\", 4);
     strncpy(this->path + 4, this->path + 20, 10);
+
+    auto lookupResult = lookupActivePortByPath(std::string(this->path));
+    if(lookupResult != nullptr) {
+        if(this->verbose) {
+            muLogger.lock();
+            auto out = defaultLogger();
+            out << currentMs() << " " << this->path << " was still open, must not have been closed properly. Closing now...\n";
+            out.close();
+            muLogger.unlock();
+        }
+
+        // looks like path is already opened by us, let's force-close that for a minute
+        if (!ClosePort(lookupResult->fd)) {
+
+            // ignore errors here and continue to attempt to re-open the port
+            char errBuf[ERROR_STRING_SIZE];
+            ErrorCodeToString("Closing connection (CloseHandle)", GetLastError(), errBuf);
+
+            if(this->verbose) {
+                muLogger.lock();
+                auto out = defaultLogger();
+                out << currentMs() << " Close existing connection to " << this->path << " failed with error: " << errBuf << "\n";
+                out.close();
+                muLogger.unlock();
+            }
+        }
+
+        // mark that port as closed
+        markPortAsClosed(lookupResult->fd);
+        delete lookupResult;
+    } else {
+        if(this->verbose) {
+            muLogger.lock();
+            auto out = defaultLogger();
+            out << currentMs() << " " << this->path << " not open right now, continuing...\n";
+            out.close();
+            muLogger.unlock();
+        }
+    }
 
     int shareMode = FILE_SHARE_READ | FILE_SHARE_WRITE;
     if (this->lock)
@@ -163,6 +203,23 @@ void OpenBaton::run()
         return;
     }
 
+    if(this->verbose) {
+        COMMPROP props;
+        if(!GetCommProperties(file, &props)) {
+            ErrorCodeToString("Open (GetCommProperties)", GetLastError(), this->errorString);
+            CloseHandle(file);
+            return;
+        }
+
+        muLogger.lock();
+        auto out = defaultLogger();
+        out << currentMs() << " OpenBaton: GetCommProperties: " << this->path << "\n";
+        out << currentMs() << " OpenBaton: GetCommProperties: dwMaxTxQueue: " << props.dwMaxTxQueue << "\n";
+        out << currentMs() << " OpenBaton: GetCommProperties: dwMaxRxQueue: " << props.dwMaxRxQueue << "\n";
+        out.close();
+        muLogger.unlock();
+    }
+
     // Remove garbage data in RX/TX queues
     PurgeComm(file, PURGE_RXCLEAR);
     PurgeComm(file, PURGE_TXCLEAR);
@@ -171,5 +228,5 @@ void OpenBaton::run()
     this->result = static_cast<int>(reinterpret_cast<uintptr_t>(file));
 
     this->watcher->file = file;
-    markPortAsOpen(file, EventWatcher(this->watcher));
+    markPortAsOpen(file, this->path, EventWatcher(this->watcher));
 }

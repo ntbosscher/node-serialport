@@ -60,14 +60,6 @@ int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
       case WAIT_ABANDONED:
         return -1;
       case WAIT_TIMEOUT:
-        if(verbose) {
-          muLogger.lock();
-          auto out = defaultLogger();
-          out << currentMs() << " _eventWatcher: wait timeout\n";
-          out.close();
-          muLogger.unlock();
-        }
-        
         return 0;
       case WAIT_FAILED:
         char error[ERROR_STRING_SIZE];
@@ -153,6 +145,17 @@ void _eventWatcher(DeviceWatcher *baton) {
     return;
   }
 
+  auto cleanup = [](bool verbose, std::string message) 
+  { 
+      if(verbose) {
+        muLogger.lock();
+        auto out = defaultLogger();
+        out << currentMs() << " _eventWatcher: exiting " << message << "\n";
+        out.close();
+        muLogger.unlock();
+      }
+  };
+
   DWORD value = 0;
   OVERLAPPED ov;
   bool pending = false;
@@ -167,6 +170,7 @@ void _eventWatcher(DeviceWatcher *baton) {
         if(error != ERROR_IO_PENDING) {
 
           if(!portIsActive(baton)) {
+            cleanup(verbose, "port is no longer active (after wait error)");
             return;
           }
 
@@ -185,6 +189,7 @@ void _eventWatcher(DeviceWatcher *baton) {
           _eventWatcherEmit(result);
 
           if(error == ERROR_INVALID_HANDLE) {
+            cleanup(verbose, "file handle is invalid");
             return;
           }
 
@@ -196,8 +201,7 @@ void _eventWatcher(DeviceWatcher *baton) {
     }
 
     if(pending) {
-      int result = _waitForCommOV(file, &ov, verbose);
-      if(result == 0) {
+      if(_waitForCommOV(file, &ov, verbose) == 0) {
         continue;
       }
 
@@ -209,13 +213,7 @@ void _eventWatcher(DeviceWatcher *baton) {
     _eventWatcherEmit(result);
   }
 
-  if(verbose) {
-    muLogger.lock();
-    auto out = defaultLogger();
-    out << currentMs() << " _eventWatcher: exited\n";
-    out.close();
-    muLogger.unlock();
-  }
+  cleanup(verbose, "port is no longer active");
 }
 
 std::thread EventWatcher(DeviceWatcher *baton) {
