@@ -37,6 +37,7 @@ void reader(BufferedReadBaton* baton) {
             if(received > lowWater) {
                 baton->push(buffer, received);
                 buffer = (char*)malloc(sizeof(char) * length);
+                received = 0;
             } else {
                 std::this_thread::sleep_for (std::chrono::milliseconds(1));
                 noDataForMs += 1;
@@ -68,6 +69,7 @@ void reader(BufferedReadBaton* baton) {
         if(received > highWater) {
             baton->push(buffer, received);
             buffer = (char*)malloc(sizeof(char) * length);
+            received = 0;
         }
 
         noDataForMs = 0;
