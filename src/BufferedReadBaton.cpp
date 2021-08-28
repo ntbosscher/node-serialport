@@ -70,6 +70,7 @@ void reader(BufferedReadBaton* baton) {
             buffer = (char*)malloc(sizeof(char) * length);
         }
 
+        noDataForMs = 0;
         noDataDeadlineMs = baton->noDataTimeoutMs;
     }
 
@@ -79,7 +80,7 @@ void reader(BufferedReadBaton* baton) {
         free(buffer);
     }
 
-    {
+    if(baton->verbose) {
         muLogger.lock();
         auto out = defaultLogger();
         out << "BufferedReadBaton::reader finished, got " << totalCount << " bytes\n";
@@ -96,6 +97,8 @@ void reader(BufferedReadBaton* baton) {
 
 void BufferedReadBaton::run()
 {
+    int ct = 0;
+
     for(;;) 
     {
         char* buffer;
@@ -114,7 +117,14 @@ void BufferedReadBaton::run()
             queue.pop();
         }
 
+        ct++;
         sendData(buffer, length);
+    }
+
+    // delay return until all data has been sent to js (prevents returing the promise before all data is sent)
+    {
+        std::unique_lock<std::mutex> lck(muSentData);
+        while(this->sentCount < ct) sentDataSignal.wait(lck);
     }
 }
 
@@ -129,18 +139,59 @@ void BufferedReadBaton::push(char* buffer, int length) {
     signal.notify_one();
 }
 
-void BufferedReadBaton::sendData(char* buffer, int length) {
-    muLogger.lock();
-    auto out = defaultLogger();
-    auto hex = bufferToHex(buffer, length);
+struct BufferDataJsInfo {
+    char* buffer;
+    int length;
+    BufferedReadBaton* baton;
+};
 
-    out << hex << "\n";
-    out.close();
-    muLogger.unlock();
-    
-    free(buffer);
+NAN_INLINE void sendBufferedReadBatonDataToJs(uv_work_t* req) {
+  Nan::HandleScope scope;
+  BufferDataJsInfo* data = static_cast<BufferDataJsInfo*>(req->data);
+
+  v8::Local<v8::Value> argv[1];
+  auto obj = Nan::NewBuffer(data->buffer, data->length); 
+  argv[0] = obj.ToLocalChecked();
+  
+  Nan::AsyncResource resource("sendBufferedReadBatonDataToJs");
+  v8::Local<v8::Function> callback_ = Nan::New(data->baton->onDataCallback);
+  v8::Local<v8::Object> target = Nan::New<v8::Object>();
+  
+  resource.runInAsyncScope(target, callback_, 1, argv);
+
+  {
+    std::unique_lock<std::mutex> lck(data->baton->muSentData);
+    data->baton->sentCount++;
+    data->baton->sentDataSignal.notify_one();
+  }
+  
+  delete req->data;
 }
 
+NAN_INLINE void noop_execute (uv_work_t* req) {
+	// filler fx
+}
+
+void BufferedReadBaton::sendData(char* buffer, int length) {
+    if(verbose) {
+        muLogger.lock();
+        auto out = defaultLogger();
+        auto hex = bufferToHex(buffer, length);
+        out << "BufferedReadBaton: send callback with data: " << hex << "\n";
+        out.close();
+        muLogger.unlock();
+    }
+
+    auto data = new BufferDataJsInfo;
+    data->buffer = buffer;
+    data->length = length;
+    data->baton = this;
+
+    uv_work_t *work = new uv_work_t;
+    work->data = (void*)data;
+
+    uv_queue_work(uv_default_loop(), work, noop_execute, (uv_after_work_cb)sendBufferedReadBatonDataToJs);
+}
 
 NAN_METHOD(BuferedRead)
 {
@@ -153,7 +204,6 @@ NAN_METHOD(BuferedRead)
 
     if(args.hasError()) return;
 
-    
     BufferedReadBaton *baton = new BufferedReadBaton("buffered-read-baton", done);
 
     baton->fd = fd;

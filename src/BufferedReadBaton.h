@@ -29,6 +29,10 @@ public:
     std::queue<BufferItem*> queue;
     bool readThreadIsRunning = false;
 
+    std::mutex muSentData;
+    std::condition_variable sentDataSignal;
+    int sentCount = 0;
+
     v8::Local<v8::Value> getReturnValue() override;
     void run() override;
     void push(char* buffer, int length);
