@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <set>
+#include <iomanip>
 
 const char kPathSeparator =
 #ifdef _WIN32
@@ -62,7 +63,7 @@ std::string bufferToHex(char* buffer, int len) {
   std::stringstream output;
 
   for(int i = 0; i < len; i++) {
-      output << std::hex << "0x" << (((int)(buffer[i])) & 0xff) << " ";
+    output << std::setfill('0') << std::setw(2) << std::hex << (((int)(buffer[i])) & 0xff) << " ";
   }
 
   return output.str();

@@ -1,6 +1,7 @@
 
 #include "./ReadBaton.h"
 #include "./V8ArgDecoder.h"
+#include <algorithm>
 
 v8::Local<v8::Value> ReadBaton::getReturnValue()
 {
@@ -60,7 +61,7 @@ void ReadBaton::run()
         auto bytesTransferred = readFromSerial(fd, buffer, bytesToRead, true, errorString);
         if(bytesTransferred < 0) {
             complete = true;
-            return; // error
+            break;
         }
 
         bytesToRead -= bytesTransferred;
@@ -68,22 +69,14 @@ void ReadBaton::run()
         offset += bytesTransferred;
         complete = bytesToRead == 0;
 
-        if(complete && verbose) {
-            muLogger.lock();
-            auto out = defaultLogger();
-            out << currentMs() << " " << debugName << " got " << bytesTransferred << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
-            out << "\n";
-            out.close();
-            muLogger.unlock();
-        }
-
     } while (!complete && currentMs() < deadline);
 
-    if(!complete) {
+    if(verbose) {
         muLogger.lock();
         auto out = defaultLogger();
-        out << currentMs() << " " << debugName << " got " << bytesRead << " bytes, buffer-contents: " << bufferToHex(bufferData, bytesRead);
-        out << "\n";
+        auto hex = bufferToHex(bufferData, bytesRead);
+
+        out << hex << "\n";
         out.close();
         muLogger.unlock();
     }

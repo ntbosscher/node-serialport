@@ -19,6 +19,7 @@ export default class FasterSerialPort {
   
     write(buf: Buffer | number[], echoMode: boolean = false): Promise<void>;
     read(nBytes: number): Promise<Buffer>;
+    bufferedRead(callback: (data: Buffer) => boolean, dataGapMs?: number): Promise<void>;
     setTimeout(ms: number): void;
     close(): Promise<void>;
     open(): Promise<void>;

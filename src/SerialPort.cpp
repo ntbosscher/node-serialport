@@ -13,6 +13,7 @@
 #include "./Flush.h"
 #include "./OpenBaton.h"
 #include "./ConfigureLogging.h"
+#include "./BufferedReadBaton.h"
 
 NAN_MODULE_INIT(init) {
         Nan::HandleScope scope;
@@ -28,6 +29,7 @@ NAN_MODULE_INIT(init) {
         Nan::SetMethod(target, "write", Write);
         Nan::SetMethod(target, "read", Read);
         Nan::SetMethod(target, "list", List);
+        Nan::SetMethod(target, "bufferedRead", BuferedRead);
 }
 
 NODE_MODULE(serialport, init);
