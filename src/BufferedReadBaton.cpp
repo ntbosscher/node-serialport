@@ -195,7 +195,7 @@ void BufferedReadBaton::sendData(char* buffer, int length) {
     uv_queue_work(uv_default_loop(), work, noop_execute, (uv_after_work_cb)sendBufferedReadBatonDataToJs);
 }
 
-NAN_METHOD(BuferedRead)
+NAN_METHOD(BufferedRead)
 {
     V8ArgDecoder args(&info);
 

@@ -39,6 +39,6 @@ public:
     void sendData(char* buffer, int length);
 };
 
-NAN_METHOD(BuferedRead);
+NAN_METHOD(BufferedRead);
 
 #endif

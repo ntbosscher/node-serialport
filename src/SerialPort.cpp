@@ -29,7 +29,7 @@ NAN_MODULE_INIT(init) {
         Nan::SetMethod(target, "write", Write);
         Nan::SetMethod(target, "read", Read);
         Nan::SetMethod(target, "list", List);
-        Nan::SetMethod(target, "bufferedRead", BuferedRead);
+        Nan::SetMethod(target, "bufferedRead", BufferedRead);
 }
 
 NODE_MODULE(serialport, init);

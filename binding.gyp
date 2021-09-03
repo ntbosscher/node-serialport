@@ -20,6 +20,7 @@
         'src/ConfigureLogging.cpp',
         'src/SerialPort.cpp',
         'src/EventWatcher.cpp',
+        'src/BufferedReadBaton.cpp',
     ],
     'include_dirs': [
       '<!(node -e "require(\'nan\')")'
