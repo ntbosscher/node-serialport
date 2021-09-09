@@ -26,7 +26,7 @@ struct LookupActivePortResult {
   std::string path;
 };
 
-std::thread EventWatcher(DeviceWatcher *baton);
+std::thread EventWatcher(std::shared_ptr<DeviceWatcher> baton);
 
 void markPortAsClosed(HANDLE file);
 void markPortAsOpen(HANDLE file, char *path, std::thread thread);

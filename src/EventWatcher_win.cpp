@@ -4,6 +4,7 @@
 #include "./Util.h"
 #include "./EventWatcher.h"
 #include <thread>
+#include <memory>
 
 NAN_INLINE void noop_execute (uv_work_t* req) {
 	// filler fx
@@ -13,12 +14,12 @@ struct EventWatcherInfo {
   char Error[ERROR_STRING_SIZE];
   int ErrorCode;
   int Event;
-  DeviceWatcher *baton;
+  std::shared_ptr<DeviceWatcher> baton;
 };
 
 NAN_INLINE void EventWatcherJsCallback(uv_work_t* req) {
   Nan::HandleScope scope;
-  EventWatcherInfo* data = static_cast<EventWatcherInfo*>(req->data);
+  auto data = std::unique_ptr<EventWatcherInfo>(static_cast<EventWatcherInfo*>(req->data));
 
   v8::Local<v8::Object> target = Nan::New<v8::Object>();
   v8::Local<v8::Value> argv[2];
@@ -42,15 +43,13 @@ NAN_INLINE void EventWatcherJsCallback(uv_work_t* req) {
   Nan::AsyncResource resource("EventWatcherJsCallback");
   v8::Local<v8::Function> callback_ = Nan::New(data->baton->eventsCallback);
   resource.runInAsyncScope(target, callback_, 2, argv);
-  
-  delete req->data;
+
+  delete req;
 }
 
-void _eventWatcherEmit(EventWatcherInfo *result) {
-    
+void _eventWatcherEmit(std::unique_ptr<EventWatcherInfo> result) {
     uv_work_t *work = new uv_work_t;
-    work->data = (void*)result;
-
+    work->data = (void*)result.release();
     uv_queue_work(uv_default_loop(), work, noop_execute, (uv_after_work_cb)EventWatcherJsCallback);
 }
 
@@ -97,8 +96,8 @@ int _waitForCommOV(HANDLE file, OVERLAPPED *ov, bool verbose) {
   }    
 }
 
-EventWatcherInfo* _newEventWatcher(DeviceWatcher *baton) {
-  auto result = new EventWatcherInfo;
+std::unique_ptr<EventWatcherInfo> _newEventWatcher(std::shared_ptr<DeviceWatcher> baton) {
+  auto result = std::make_unique<EventWatcherInfo>();
   result->baton = baton;
   result->Error[0] = '\0';
   result->ErrorCode = 0;
@@ -106,7 +105,7 @@ EventWatcherInfo* _newEventWatcher(DeviceWatcher *baton) {
   return result;
 }
 
-void _eventWatcher(DeviceWatcher *baton) {
+void _eventWatcher(std::shared_ptr<DeviceWatcher> baton) {
 
   auto file = baton->file;
   auto verbose = baton->verbose;
@@ -125,7 +124,7 @@ void _eventWatcher(DeviceWatcher *baton) {
 
   if(!SetCommMask(file, mask)) {
     
-    EventWatcherInfo *result = new EventWatcherInfo;
+    auto result = std::make_unique<EventWatcherInfo>();
     result->baton = baton;
     result->Error[0] = '\0';
 
@@ -141,7 +140,7 @@ void _eventWatcher(DeviceWatcher *baton) {
       muLogger.unlock();
     }
 
-    _eventWatcherEmit(result);
+    _eventWatcherEmit(std::move(result));
     return;
   }
 
@@ -160,7 +159,7 @@ void _eventWatcher(DeviceWatcher *baton) {
   OVERLAPPED ov;
   bool pending = false;
 
-  while(portIsActive(baton)) {
+  while(portIsActive(baton.get())) {
     if(!pending) {
       memset(&ov, 0, sizeof(ov));
       ov.hEvent = CreateEvent(NULL,TRUE,FALSE,NULL);
@@ -169,7 +168,7 @@ void _eventWatcher(DeviceWatcher *baton) {
         auto error = GetLastError();
         if(error != ERROR_IO_PENDING) {
 
-          if(!portIsActive(baton)) {
+          if(!portIsActive(baton.get())) {
             cleanup(verbose, "port is no longer active (after wait error)");
             return;
           }
@@ -186,7 +185,7 @@ void _eventWatcher(DeviceWatcher *baton) {
             muLogger.unlock();
           }
 
-          _eventWatcherEmit(result);
+          _eventWatcherEmit(std::move(result));
 
           if(error == ERROR_INVALID_HANDLE) {
             cleanup(verbose, "file handle is invalid");
@@ -210,13 +209,13 @@ void _eventWatcher(DeviceWatcher *baton) {
     
     auto result = _newEventWatcher(baton);
     result->Event = value;
-    _eventWatcherEmit(result);
+    _eventWatcherEmit(std::move(result));
   }
 
   cleanup(verbose, "port is no longer active");
 }
 
-std::thread EventWatcher(DeviceWatcher *baton) {
+std::thread EventWatcher(std::shared_ptr<DeviceWatcher> baton) {
   std::thread t(_eventWatcher, baton);
   return t;
 }

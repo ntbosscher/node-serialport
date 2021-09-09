@@ -7,7 +7,7 @@ v8::Local<v8::Value> ListBaton::getReturnValue()
     v8::Local<v8::Array> results = Nan::New<v8::Array>();
     int i = 0;
 
-    for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it, i++)
+    for (std::list<unique_ptr<ListResultItem>>::iterator it = this->results.begin(); it != this->results.end(); ++it, i++)
     {
         v8::Local<v8::Object> item = Nan::New<v8::Object>();
 
@@ -22,10 +22,8 @@ v8::Local<v8::Value> ListBaton::getReturnValue()
         Nan::Set(results, i, item);
     }
 
-    for (std::list<ListResultItem *>::iterator it = this->results.begin(); it != this->results.end(); ++it)
-    {
-        delete *it;
-    }
+    // cleanup list
+    this->results.clear();
 
     return results;
 }

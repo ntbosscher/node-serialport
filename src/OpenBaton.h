@@ -75,7 +75,7 @@ public:
     SerialPortParity parity;
     SerialPortStopBits stopBits;
 
-    DeviceWatcher *watcher;
+    std::shared_ptr<DeviceWatcher> watcher;
     
 #ifndef WIN32
     uint8_t vmin = 0;

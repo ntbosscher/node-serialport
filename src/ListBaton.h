@@ -19,7 +19,7 @@ struct ListResultItem {
 
 class ListBaton : public BatonBase {
 public:
-    std::list<ListResultItem *> results;
+    std::list<std::unique_ptr<ListResultItem>> results;
 
     ListBaton(v8::Local<v8::Function> callback_) : BatonBase("node-serialport:ListBaton", callback_)
     {

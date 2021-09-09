@@ -45,7 +45,7 @@ NAN_METHOD(Open)
         baton->hupcl = object.getBool("hupcl");
         baton->lock = object.getBool("lock");
 
-        auto watcher = new DeviceWatcher;
+        auto watcher = std::make_shared<DeviceWatcher>();
         watcher->verbose = baton->verbose;
         watcher->eventsCallback.Reset(object.getFunction("eventsCallback"));
         baton->watcher = watcher;

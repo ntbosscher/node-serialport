@@ -48,7 +48,7 @@ typedef struct _STRING_DESCRIPTOR_NODE
  * Typically *paths only returns 1 string, but it's possible that it will return 
  * multiple paths.
  */
-int GetInterfacePaths(TCHAR *sysDeviceID, LPGUID interfaceGUID, PSTR *paths)
+int GetInterfacePaths(TCHAR *sysDeviceID, LPGUID interfaceGUID, char ** paths)
 {
     CONFIGRET cres;
     if (!paths)
@@ -67,7 +67,7 @@ int GetInterfacePaths(TCHAR *sysDeviceID, LPGUID interfaceGUID, PSTR *paths)
     cres = CM_Get_Device_Interface_List(interfaceGUID, sysDeviceID, (PZZSTR)buf, bufSz, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
     if (cres != CR_SUCCESS)
     {
-        free(paths);
+        free(buf);
         return -13;
     }
 
@@ -262,12 +262,10 @@ int GetStringDescriptor(
 int GetiManufacturer(SP_DEVINFO_DATA device, int portIndex, char **manufacturer)
 {
     DWORD deviceId = device.DevInst;
-    PSTR path;
+    unique_ptr<char> path;
 
     for (int i = 0; i < 3; i++)
     {
-        unsigned long len = 1024;
-        byte *buf = new byte[len];
 
         TCHAR szDeviceInstanceID[MAX_DEVICE_ID_LEN];
 
@@ -277,16 +275,18 @@ int GetiManufacturer(SP_DEVINFO_DATA device, int portIndex, char **manufacturer)
             return -1;
         }
 
-        PSTR paths;
+        char* path_src;
         LPGUID guid = (GUID *)&GUID_DEVINTERFACE_USB_HUB;
 
-        result = GetInterfacePaths(szDeviceInstanceID, guid, &paths);
+        result = GetInterfacePaths(szDeviceInstanceID, guid, &path_src);
         if (result < 0)
         {
             return -2;
         }
 
-        if (strlen(paths) == 0)
+        auto paths = unique_ptr<char>(path_src);
+
+        if (strlen(paths.get()) == 0)
         {
             // try again one tier up
             DWORD parent;
@@ -301,17 +301,15 @@ int GetiManufacturer(SP_DEVINFO_DATA device, int portIndex, char **manufacturer)
             continue;
         }
 
-        // alloc on the stack so we can forget about cleaning up paths
-        // and assume that there's only 1 path returned
-        path = new char[strlen(paths) + 1];
-        strcpy(path, paths);
-        delete[] paths;
-
+        // assume that there's only 1 path returned
+        
+        path = unique_ptr<char>(new char[strlen(paths.get()) + 1]);
+        strcpy(path.get(), paths.get());
         break;
     }
 
     HANDLE handle = CreateFile(
-        (LPCSTR)path,
+        (LPCSTR)path.get(),
         GENERIC_WRITE | GENERIC_READ,
         FILE_SHARE_WRITE | FILE_SHARE_READ,
         NULL,
@@ -619,7 +617,7 @@ void ListBaton::run() {
         }
 
         if (isCom) {
-            ListResultItem *resultItem = new ListResultItem();
+            auto resultItem = std::make_unique<ListResultItem>();
             resultItem->path = name;
 
             // use iManufacturer if it's available
@@ -641,7 +639,7 @@ void ListBaton::run() {
                 resultItem->locationId = locationId;
             }
 
-            results.push_back(resultItem);
+            results.push_back(std::move(resultItem));
         } else {
         }
 

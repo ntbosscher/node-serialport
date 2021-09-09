@@ -228,5 +228,8 @@ void OpenBaton::run()
     this->result = static_cast<int>(reinterpret_cast<uintptr_t>(file));
 
     this->watcher->file = file;
-    markPortAsOpen(file, this->path, EventWatcher(this->watcher));
+    auto w = this->watcher;
+    this->watcher.reset();
+
+    markPortAsOpen(file, this->path, EventWatcher(w));
 }

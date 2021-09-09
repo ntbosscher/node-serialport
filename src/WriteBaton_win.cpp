@@ -9,7 +9,7 @@
 #include <iomanip>
 
 int writeToSerial(int fd, char* buffer, int length, bool blocking, char* error) {
-    OVERLAPPED *ov = new OVERLAPPED;
+    auto ov = unique_ptr<OVERLAPPED>(new OVERLAPPED());
 
     // Set the timeout to MAXDWORD in order to disable timeouts, so the read operation will
     // return immediately no matter how much data is available.
@@ -32,11 +32,11 @@ int writeToSerial(int fd, char* buffer, int length, bool blocking, char* error) 
     }
 
     // ReadFile, unlike ReadFileEx, needs an event in the overlapped structure.
-    memset(ov, 0, sizeof(OVERLAPPED));
+    memset(ov.get(), 0, sizeof(OVERLAPPED));
     ov->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     DWORD bytesTransferred = 0;
 
-    if (!WriteFile(int2handle(fd), buffer, length, NULL, ov))
+    if (!WriteFile(int2handle(fd), buffer, length, NULL, ov.get()))
     {
         int errorCode = GetLastError();
         if (errorCode != ERROR_IO_PENDING)
@@ -45,7 +45,7 @@ int writeToSerial(int fd, char* buffer, int length, bool blocking, char* error) 
             return -1;
         }
 
-        if (!GetOverlappedResult(int2handle(fd), ov, &bytesTransferred, true))
+        if (!GetOverlappedResult(int2handle(fd), ov.get(), &bytesTransferred, true))
         {
             int errorCode = GetLastError();
             ErrorCodeToString("Writing to COM port (WriteFileEx)", errorCode, error);
