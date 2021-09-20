@@ -53,7 +53,7 @@ LookupActivePortResult* lookupActivePortByPath(std::string path) {
   return result;
 }
 
-void markPortAsOpen(HANDLE file, char *path, std::thread thread) {
+void markPortAsOpen(HANDLE file, char *path, std::unique_ptr<std::thread> thread) {
 
   if(verboseLoggingEnabled()) {
       muLogger.lock();
@@ -68,7 +68,7 @@ void markPortAsOpen(HANDLE file, char *path, std::thread thread) {
   
   pi->fd = file;
   pi->path = std::string(path);
-  pi->watcher = &thread;
+  pi->watcher = std::move(thread);
 
   activePorts[file] = std::move(pi);
   muActivePorts.unlock();
@@ -102,7 +102,7 @@ void markPortAsClosed(HANDLE file) {
   if(verbose) {
     muLogger.lock();
     auto out = defaultLogger();
-    out << currentMs() << " markPortAsClosed: threadIsValid: " << threadIsValid << " " << info->watcher->joinable() << "\n";
+    out << currentMs() << " markPortAsClosed: threadIsValid: " << threadIsValid << " " << (info && info->watcher->joinable()) << "\n";
     out.close();
     muLogger.unlock();
   }

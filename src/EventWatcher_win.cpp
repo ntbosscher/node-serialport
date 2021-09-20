@@ -215,7 +215,6 @@ void _eventWatcher(std::shared_ptr<DeviceWatcher> baton) {
   cleanup(verbose, "port is no longer active");
 }
 
-std::thread EventWatcher(std::shared_ptr<DeviceWatcher> baton) {
-  std::thread t(_eventWatcher, baton);
-  return t;
+std::unique_ptr<std::thread> EventWatcher(std::shared_ptr<DeviceWatcher> baton) {
+  return std::make_unique<std::thread>(_eventWatcher, baton);
 }

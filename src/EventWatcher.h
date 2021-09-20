@@ -18,7 +18,7 @@ struct DeviceWatcher {
 struct PortInfo {
   HANDLE fd;
   std::string path;
-  std::thread* watcher;
+  std::unique_ptr<std::thread> watcher;
 };
 
 struct LookupActivePortResult {
@@ -26,10 +26,10 @@ struct LookupActivePortResult {
   std::string path;
 };
 
-std::thread EventWatcher(std::shared_ptr<DeviceWatcher> baton);
+std::unique_ptr<std::thread> EventWatcher(std::shared_ptr<DeviceWatcher> baton);
 
 void markPortAsClosed(HANDLE file);
-void markPortAsOpen(HANDLE file, char *path, std::thread thread);
+void markPortAsOpen(HANDLE file, char *path, std::unique_ptr<std::thread> thread);
 bool portIsActive(DeviceWatcher *baton);
 LookupActivePortResult* lookupActivePortByPath(std::string path);
 
