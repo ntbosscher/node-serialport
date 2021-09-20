@@ -2,9 +2,10 @@
 #include <mutex>
 #include <map>
 #include <string>
+#include <memory>
 
 std::mutex muActivePorts;
-std::map<HANDLE,PortInfo*> activePorts;
+std::map<HANDLE,std::unique_ptr<PortInfo>> activePorts;
 
 LookupActivePortResult* lookupActivePortByPath(std::string path) {
   LookupActivePortResult* result = nullptr;
@@ -21,7 +22,7 @@ LookupActivePortResult* lookupActivePortByPath(std::string path) {
   
   muActivePorts.lock();
 
-  for (std::map<HANDLE,PortInfo*>::iterator it=activePorts.begin(); it!=activePorts.end(); ++it) {
+  for (auto it=activePorts.begin(); it!=activePorts.end(); ++it) {
     
     if(enableVerbose) {
       out << currentMs() << " lookupActivePortByPath: has " << (int)it->second->fd << " " << (it->second->path) << "\n";
@@ -63,13 +64,13 @@ void markPortAsOpen(HANDLE file, char *path, std::thread thread) {
   }
 
   muActivePorts.lock();
-  auto pi = new PortInfo;
+  auto pi = std::make_unique<PortInfo>();
   
   pi->fd = file;
   pi->path = std::string(path);
   pi->watcher = &thread;
 
-  activePorts[file] = pi;
+  activePorts[file] = std::move(pi);
   muActivePorts.unlock();
 }
 
@@ -83,27 +84,31 @@ void markPortAsClosed(HANDLE file) {
       muLogger.unlock();
   }
 
-  muActivePorts.lock();
-  
-  auto pair = activePorts.find(file);
-  auto threadIsValid = pair != activePorts.end();
+  std::unique_ptr<PortInfo> info;
 
-  if(threadIsValid) {
-    activePorts.erase(file);
+  muActivePorts.lock();
+
+  auto pair = activePorts.find(file);
+
+  if(pair != activePorts.end()) {
+    info = std::move(pair->second);
+    activePorts.erase(pair);
   }
 
   muActivePorts.unlock();
 
+  auto threadIsValid = !!info;
+
   if(verbose) {
     muLogger.lock();
     auto out = defaultLogger();
-    out << currentMs() << " markPortAsClosed: threadIsValid: " << threadIsValid << " " << pair->second->watcher->joinable() << "\n";
+    out << currentMs() << " markPortAsClosed: threadIsValid: " << threadIsValid << " " << info->watcher->joinable() << "\n";
     out.close();
     muLogger.unlock();
   }
 
   try {
-    if(threadIsValid && pair->second->watcher->joinable()) {
+    if(info && info->watcher->joinable()) {
         if(verbose) {
           muLogger.lock();
           auto out = defaultLogger();
@@ -112,16 +117,11 @@ void markPortAsClosed(HANDLE file) {
           muLogger.unlock();
         }
 
-        pair->second->watcher->join();
+        info->watcher->join();
     }
   } catch (...) {
     // sometimes on windows we get a NO_SUCH_PROCESS error here
     // ignore and carry on
-  }
-
-  // cleanup the memory
-  if(threadIsValid) {
-    delete pair->second;
   }
 }
 
