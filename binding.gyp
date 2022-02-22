@@ -27,6 +27,15 @@
     ],
     'conditions': [
         ['OS=="mac"', {
+            'xcode_settings': {
+                'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+                "OTHER_CFLAGS": ["-mmacosx-version-min=10.9", "-std=c++20", "-stdlib=libc++"],
+                "OTHER_CPLUSPLUSFLAGS": ["-mmacosx-version-min=10.9", "-std=c++20", "-stdlib=libc++"],
+                "MACOSX_DEPLOYMENT_TARGET": "10.9"
+            },
+            "include_dirs": [
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+            ],
             'sources': [
                 'src/Darwin.cpp',
                 'src/Close_darwin.cpp',
@@ -49,7 +58,7 @@
           'sources': [
             'src/win.cpp',
             'src/Close_win.cpp',
-            'src/Drain_win.cpp',
+            'src/Drain_../src/BufferedReadBaton.cpp:6:10:win.cpp',
             'src/Flush_win.cpp',
             'src/Get_win.cpp',
             'src/UpdateBaton_win.cpp',

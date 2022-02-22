@@ -3,7 +3,11 @@
 #include "./V8ArgDecoder.h"
 #include <algorithm>
 #include "./ReadBaton.h"
+
+#ifdef WIN32
 #include <Windows.h>
+#endif
+
 #include <chrono>
 #include <thread>
 

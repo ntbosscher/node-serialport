@@ -89,4 +89,11 @@ e.g. package.json
 }
 ```
 
-2. Symbolicly link `<project-root>/build/faster-serial-port.node` => `build/Release/faster-serial-port.node` (fixes electron issue with `bindings` root issue)
+2. Symbolicly link `<project-root>/prebuilds/<platform>/<target>.node` => `build/Release/faster-serial-port.node` (fixes electron issue with `bindings` root issue)
+
+## Dev
+
+```
+npm install -g prebuildify
+brew install gcc
+```

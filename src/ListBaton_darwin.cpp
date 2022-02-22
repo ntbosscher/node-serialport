@@ -11,7 +11,7 @@ void ListBaton::run() {
         for (int i = 0, len = *(devices->length); i < len; i++) {
             stSerialDevice device = (* next).value;
 
-            ListResultItem* resultItem = new ListResultItem();
+            auto resultItem = std::make_unique<ListResultItem>();
             resultItem->path = device.port;
 
             if (*device.locationId) {
@@ -30,7 +30,7 @@ void ListBaton::run() {
                 resultItem->serialNumber = device.serialNumber;
             }
 
-            this->results.push_back(resultItem);
+            results.push_back(std::move(resultItem));
 
             stDeviceListItem* current = next;
 

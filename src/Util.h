@@ -18,6 +18,10 @@
     #define strncasecmp strnicmp
 #endif
 
+#ifndef HANDLE
+typedef int HANDLE;
+#endif
+
 extern std::mutex muLogger;
 
 enum SerialPortParity {
