@@ -14,8 +14,8 @@ NAN_METHOD(Read)
 
         auto fd = args.takeInt32();
         auto buffer = args.takeBuffer();
-        auto offset = args.takeInt32();
-        auto bytesToRead = args.takeInt32();
+        auto offset = (size_t)args.takeInt32();
+        auto bytesToRead = (size_t)args.takeInt32();
         auto timeout = args.takeInt32();
         auto cb = args.takeFunction();
 

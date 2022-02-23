@@ -15,7 +15,7 @@ struct BufferItem {
 
 class BufferedReadBaton : public BatonBase {
 public:
-    BufferedReadBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
+    BufferedReadBaton(std::string name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
     {
         request.data = this;
     }

@@ -7,6 +7,14 @@
 
 v8::Local<v8::Value> WriteBaton::getReturnValue()
 {
+    if(verbose) {
+        muLogger.lock();
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " get-return \n";
+        out.close();
+        muLogger.unlock();
+    }
+
     return Nan::Null();
 }
 
@@ -30,7 +38,7 @@ void WriteBaton::writeEcho(int deadline) {
     char readBuffer[1];
     char writeBuffer[1];
 
-    for(int i = 0; i < bufferLength; i++) {
+    for(size_t i = 0; i < bufferLength; i++) {
         writeBuffer[0] = bufferData[i];
         int len = 1;
         int result = 0;
@@ -112,6 +120,14 @@ void WriteBaton::writeNormal(int deadline) {
         complete = offset == bufferLength;
 
     } while (!complete && currentMs() > deadline);
+
+    if(verbose) {
+        muLogger.lock();
+        auto out = defaultLogger();
+        out << currentMs() << " " << debugName << " done-loop \n";
+        out.close();
+        muLogger.unlock();
+    }
 }
 
 void WriteBaton::run()
@@ -127,7 +143,7 @@ void WriteBaton::run()
     }
 
     if(!complete) {
-        sprintf((char*)&errorString, "Timeout writing to port: %d of %d bytes written", (this->bufferLength-this->offset), this->bufferLength);
+        sprintf((char*)&errorString, "Timeout writing to port: %lu of %zu bytes written", (this->bufferLength-this->offset), this->bufferLength);
     }
 }
 

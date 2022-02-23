@@ -12,5 +12,6 @@ struct ConnectionOptions {
 };
 
 int setBaudRate(ConnectionOptions *data);
+int setFileBlockingFlags(int fd, bool blocking, char *error);
 
 #endif

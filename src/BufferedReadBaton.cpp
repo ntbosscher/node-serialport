@@ -30,9 +30,12 @@ void reader(BufferedReadBaton* baton) {
     int noDataForMs = 0;
     long totalCount = 0;
 
+    baton->logVerbose("started reader thread");
+
     for(;;) {
         
         if(noDataForMs > noDataDeadlineMs) {
+            baton->logVerbose("timed out after 10s");
             break;
         }
 
@@ -54,6 +57,7 @@ void reader(BufferedReadBaton* baton) {
             std::this_thread::sleep_for (std::chrono::milliseconds(1));
             noDataForMs += 1;
 
+            baton->logVerbose(std::string("got error: ") + std::string(errorString));
             free(buffer);
             
             {
@@ -64,6 +68,7 @@ void reader(BufferedReadBaton* baton) {
 
                 baton->signal.notify_one();
             }
+
             return;
         }
 
@@ -86,13 +91,7 @@ void reader(BufferedReadBaton* baton) {
         free(buffer);
     }
 
-    if(baton->verbose) {
-        muLogger.lock();
-        auto out = defaultLogger();
-        out << "BufferedReadBaton::reader finished, got " << totalCount << " bytes\n";
-        out.close();
-        muLogger.unlock();
-    }
+    baton->logVerbose(std::string("finished, got ") + std::to_string(totalCount) + std::string(" bytes\n"));
 
     {
         std::unique_lock<std::mutex> lck(baton->syncMutex);
@@ -104,6 +103,7 @@ void reader(BufferedReadBaton* baton) {
 void BufferedReadBaton::run()
 {
     int ct = 0;
+    logVerbose("run");
 
     for(;;) 
     {
@@ -114,7 +114,10 @@ void BufferedReadBaton::run()
             std::unique_lock<std::mutex> lck(syncMutex);
 
             while(queue.empty() && readThreadIsRunning) signal.wait(lck);
-            if(queue.empty()) break;
+            if(queue.empty()) {
+                logVerbose("queue-empty");
+                break;
+            }
 
             auto next = queue.front();
             buffer = next->buffer;
@@ -127,11 +130,15 @@ void BufferedReadBaton::run()
         sendData(buffer, length);
     }
 
+    logVerbose("done-loop");
+
     // delay return until all data has been sent to js (prevents returing the promise before all data is sent)
     {
         std::unique_lock<std::mutex> lck(muSentData);
         while(this->sentCount < ct) sentDataSignal.wait(lck);
     }
+
+    logVerbose("done");
 }
 
 void BufferedReadBaton::push(char* buffer, int length) {
@@ -171,7 +178,7 @@ NAN_INLINE void sendBufferedReadBatonDataToJs(uv_work_t* req) {
     data->baton->sentDataSignal.notify_one();
   }
   
-  delete req->data;
+  delete ((BufferDataJsInfo*)req->data);
 }
 
 NAN_INLINE void noop_execute (uv_work_t* req) {
@@ -218,5 +225,7 @@ NAN_METHOD(BufferedRead)
     baton->readThreadIsRunning = true;
     
     std::thread t1(reader, baton);
+    t1.detach();
+
     baton->start();
 }

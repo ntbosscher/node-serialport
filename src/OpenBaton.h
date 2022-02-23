@@ -54,7 +54,7 @@ SerialPortStopBits NAN_INLINE(ToStopBitEnum(double stopBits))
 class OpenBaton : public BatonBase
 {
 public:
-    OpenBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_), path()
+    OpenBaton(std::string name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_), path()
     {
         request.data = this;
     }

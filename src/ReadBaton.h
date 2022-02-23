@@ -6,7 +6,7 @@
 
 class ReadBaton : public BatonBase {
 public:
-    ReadBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
+    ReadBaton(std::string name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
     {
         request.data = this;
     }
