@@ -94,6 +94,6 @@ e.g. package.json
 ## Dev
 
 ```
-npm install -g prebuildify
+npm install -g prebuildify node-gyp yarn
 brew install gcc
 ```
