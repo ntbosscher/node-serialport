@@ -9,7 +9,7 @@
 class UpdateBaton : public BatonBase
 {
 public:
-    UpdateBaton(char *name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
+    UpdateBaton(std::string name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
     {
         request.data = this;
     }

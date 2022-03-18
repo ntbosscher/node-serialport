@@ -27,7 +27,7 @@ public:
     std::string debugName;
     bool verbose = true;
     
-    BatonBase(char* name, v8::Local<v8::Function> callback_);
+    BatonBase(std::string name, v8::Local<v8::Function> callback_);
     
     void start();
     void done();
@@ -37,15 +37,8 @@ public:
 
     void logVerbose(std::string value);
     
-    ~BatonBase() {
-        if(this->verbose) {
-            muLogger.lock();
-            auto out = defaultLogger();
-            out << currentMs() << " " << (void*)this << " " << debugName << " destroy\n";
-            out.close();
-            muLogger.unlock();
-        }
-
+    virtual ~BatonBase() {
+        logVerbose("destroy");
         callback.Reset();
     }
 };

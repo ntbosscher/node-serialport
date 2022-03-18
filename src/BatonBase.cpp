@@ -1,8 +1,10 @@
 #include "./BatonBase.h"
 
 void DoAction(uv_work_t* req) {
-    auto baton = static_cast<BatonBase*>(req->data);    
+    auto baton = static_cast<BatonBase*>(req->data);
+    baton->logVerbose("run start");
     baton->run();
+    baton->logVerbose("run end");
 }
 
 void AfterAction(uv_work_t* req, int status) {
@@ -13,6 +15,8 @@ void AfterAction(uv_work_t* req, int status) {
     }
     
     baton->done();
+    baton->logVerbose("pre-delete baton");
+
     delete baton;
 }
 
@@ -28,12 +32,13 @@ void BatonBase::logVerbose(std::string input) {
     muLogger.unlock();
 }
 
-
-BatonBase::BatonBase(char* name, v8::Local<v8::Function> callback_): AsyncResource(name), errorString(), debugName(name) {
-    debugName = std::string(name);
+BatonBase::BatonBase(std::string name, v8::Local<v8::Function> callback_): AsyncResource(name.c_str()), errorString(), debugName(name) {
+    debugName = name;
     callback.Reset(callback_);
     snprintf(errorString, sizeof(errorString), "");
     verbose = verboseLoggingEnabled();
+
+    logVerbose("create");
 }
 
 void BatonBase::start() {
@@ -51,6 +56,8 @@ v8::Local<v8::Value> BatonBase::getReturnValue() {
 }
 
 void BatonBase::done() {
+
+    logVerbose("run callback");
     
     v8::Local<v8::Function> callback_ = Nan::New(callback);
     v8::Local<v8::Object> target = Nan::New<v8::Object>();

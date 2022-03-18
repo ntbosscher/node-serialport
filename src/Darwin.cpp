@@ -104,3 +104,24 @@ int setBaudRate(ConnectionOptions *data) {
     tcsetattr(fd, TCSANOW, &options);
     return 1;
 }
+
+int setFileBlockingFlags(int fd, bool blocking, char *error) {
+  int flags = fcntl(fd, F_GETFL, 0);
+
+    // update blocking flags to matching blocking arg
+    if(blocking && (flags & O_NONBLOCK) != 0) {
+        // set blocking
+        if(fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+            sprintf(error, "Failed set file flags (errno=%d)", errno);
+            return -1;
+        }
+    } else if (!blocking && (flags & O_NONBLOCK) == 0) {
+        // set not-blocking
+        if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+            sprintf(error, "Failed set file flags (errno=%d)", errno);
+            return -1;
+        }
+    }
+
+    return 0;
+}
