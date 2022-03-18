@@ -19,7 +19,7 @@
 #endif
 
 #ifndef HANDLE
-typedef int HANDLE;
+typedef void* HANDLE;
 #endif
 
 extern std::mutex muLogger;
