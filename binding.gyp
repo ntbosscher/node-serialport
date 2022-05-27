@@ -58,7 +58,7 @@
           'sources': [
             'src/win.cpp',
             'src/Close_win.cpp',
-            'src/Drain_../src/BufferedReadBaton.cpp:6:10:win.cpp',
+            'src/Drain_win.cpp',
             'src/Flush_win.cpp',
             'src/Get_win.cpp',
             'src/UpdateBaton_win.cpp',
