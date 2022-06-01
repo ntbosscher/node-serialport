@@ -349,7 +349,7 @@ int GetiManufacturer(SP_DEVINFO_DATA device, int portIndex, char **manufacturer)
 
     *manufacturer = strdup(wStr2Char(descriptorString).c_str());
 
-    free(descriptorString);
+    FREE(descriptorString);
     CloseHandle(handle);
 
     return 0;
