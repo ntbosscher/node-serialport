@@ -46,13 +46,6 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
-bindings@^1.5.0:
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/bindings/-/bindings-1.5.0.tgz#10353c9e945334bc0511a6d90b38fbc7c9c504df"
-  integrity sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==
-  dependencies:
-    file-uri-to-path "1.0.0"
-
 bl@^4.0.3:
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/bl/-/bl-4.1.0.tgz#451535264182bec2fbbc83a62ab98cf11d9f7b3a"
@@ -309,6 +302,12 @@ node-abi@3.8.0, node-abi@^3.3.0:
   dependencies:
     semver "^7.3.5"
 
+"node-bindings@https://github.com/ntbosscher/node-bindings":
+  version "1.6.0"
+  resolved "https://github.com/ntbosscher/node-bindings#d635751b63fa164147a3db61be706722db7b337c"
+  dependencies:
+    file-uri-to-path "1.0.0"
+
 node-cmake@^2.5.1:
   version "2.5.1"
   resolved "https://registry.yarnpkg.com/node-cmake/-/node-cmake-2.5.1.tgz#6c9a1f463621ed5dc7662cfece10e1ea7986ebea"
@@ -318,11 +317,6 @@ node-cmake@^2.5.1:
     nan "^2.8.0"
     which "^1.3.0"
     yargs "^7.1.0"
-
-node-gyp-build@4.3.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.3.0.tgz#9f256b03e5826150be39c764bf51e993946d71a3"
-  integrity sha512-iWjXZvmboq0ja1pUGULQBexmxq8CV4xBhX7VDOTbL7ZR4FOowwY/VOtRxBN/yKxmdGoIp4j5ysNT4u3S2pDQ3Q==
 
 normalize-package-data@^2.3.2:
   version "2.5.0"
