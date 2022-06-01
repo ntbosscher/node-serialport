@@ -25,7 +25,7 @@ LookupActivePortResult* lookupActivePortByPath(std::string path) {
   for (auto it=activePorts.begin(); it!=activePorts.end(); ++it) {
     
     if(enableVerbose) {
-      out << currentMs() << " lookupActivePortByPath: has " << (int)it->second->fd << " " << (it->second->path) << "\n";
+      out << currentMs() << " lookupActivePortByPath: has " << (int)(size_t)it->second->fd << " " << (it->second->path) << "\n";
       out.flush();
     }
 
@@ -35,7 +35,7 @@ LookupActivePortResult* lookupActivePortByPath(std::string path) {
       result->path = it->second->path;
 
       if(enableVerbose) {
-        out << currentMs() << " lookupActivePortByPath: match found: " << (int)it->second->fd << " " << it->second->path << "\n";
+        out << currentMs() << " lookupActivePortByPath: match found: " << (int)(size_t)it->second->fd << " " << it->second->path << "\n";
         out.flush();
       }
 
@@ -58,7 +58,7 @@ void markPortAsOpen(HANDLE file, char *path, std::unique_ptr<std::thread> thread
   if(verboseLoggingEnabled()) {
       muLogger.lock();
       auto out = defaultLogger();
-      out << currentMs() << " markPortAsOpen " << std::to_string((int)file) + ": " << path << "\n";
+      out << currentMs() << " markPortAsOpen " << std::to_string((int)(size_t)file) + ": " << path << "\n";
       out.close();
       muLogger.unlock();
   }
@@ -79,7 +79,7 @@ void markPortAsClosed(HANDLE file) {
   if(verbose) {
       muLogger.lock();
       auto out = defaultLogger();
-      out << currentMs() << " markPortAsClosed(" << (int)file << ")\n";
+      out << currentMs() << " markPortAsClosed(" << (int)(size_t)file << ")\n";
       out.close();
       muLogger.unlock();
   }
