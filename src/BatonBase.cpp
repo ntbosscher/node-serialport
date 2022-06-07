@@ -59,18 +59,32 @@ void BatonBase::done() {
 
     logVerbose("run callback");
     
-    v8::Local<v8::Function> callback_ = Nan::New(callback);
     v8::Local<v8::Object> target = Nan::New<v8::Object>();
+    v8::Local<v8::Function> callback_ = getCallback();
 
-    v8::Local<v8::Value> argv[2];
-    
-    if(errorString[0]) {
-        argv[0] = v8::Exception::Error(Nan::New<v8::String>(errorString).ToLocalChecked());
-        argv[1] = Nan::Undefined();
+    if(isSingleResult) {
+        v8::Local<v8::Value> argv[1];    
+
+        if(errorString[0]) {
+            argv[0] = v8::Exception::Error(Nan::New<v8::String>(errorString).ToLocalChecked());
+        } else {
+            argv[0] = getReturnValue();
+        }
+        
+        runInAsyncScope(target, callback_, 1, argv);
     } else {
-        argv[0] = Nan::Null();
-        argv[1] = getReturnValue();
+        v8::Local<v8::Value> argv[2];
+        
+        if(errorString[0]) {
+            argv[0] = v8::Exception::Error(Nan::New<v8::String>(errorString).ToLocalChecked());
+            argv[1] = Nan::Undefined();
+        } else {
+            argv[0] = Nan::Null();
+            argv[1] = getReturnValue();
+        }
+        
+        runInAsyncScope(target, callback_, 2, argv);
     }
-    
-    runInAsyncScope(target, callback_, 2, argv);
+
+    afterCallback();
 }

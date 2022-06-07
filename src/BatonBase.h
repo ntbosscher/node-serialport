@@ -26,6 +26,7 @@ public:
     
     std::string debugName;
     bool verbose = true;
+    bool isSingleResult = false;
     
     BatonBase(std::string name, v8::Local<v8::Function> callback_);
     
@@ -41,6 +42,13 @@ public:
         logVerbose("destroy");
         callback.Reset();
     }
+
+    virtual v8::Local<v8::Function> getCallback() {
+        v8::Local<v8::Function> cb = Nan::New(callback);
+        return cb;
+    }
+
+    virtual void afterCallback() {}
 };
 
 /*

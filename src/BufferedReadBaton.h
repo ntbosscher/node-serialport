@@ -13,30 +13,25 @@ struct BufferItem {
     int length;
 };
 
-class BufferedReadBaton : public BatonBase {
+class BufferedReadBaton {
 public:
-    BufferedReadBaton(std::string name, v8::Local<v8::Function> callback_) : BatonBase(name, callback_)
-    {
-        request.data = this;
-    }
+    BufferedReadBaton()
+    {}
 
     int fd = 0;
     int noDataTimeoutMs;
-    Nan::Persistent<v8::Function> onDataCallback;
+
+    char errorString[ERROR_STRING_SIZE];
+    
+    Nan::Persistent<v8::Function> onData;
+    Nan::Persistent<v8::Function> onDone;
     
     std::mutex syncMutex;
     std::condition_variable signal;
     std::queue<BufferItem*> queue;
     bool readThreadIsRunning = false;
-
-    std::mutex muSentData;
-    std::condition_variable sentDataSignal;
-    int sentCount = 0;
-
-    v8::Local<v8::Value> getReturnValue() override;
-    void run() override;
+    
     void push(char* buffer, int length);
-    void sendData(char* buffer, int length);
 };
 
 NAN_METHOD(BufferedRead);

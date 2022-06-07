@@ -106,11 +106,11 @@ int GetDeviceDescriptorForPortIndex(HANDLE handle, ULONG portIndex, USB_DEVICE_D
     if (success)
     {
         *descriptor = ConnectionInfo->DeviceDescriptor;
-        FREE(ConnectionInfo);
+        free(ConnectionInfo);
         return 0;
     }
 
-    FREE(ConnectionInfo);
+    free(ConnectionInfo);
 
     PUSB_NODE_CONNECTION_INFORMATION connectionInfo = NULL;
 
