@@ -118,28 +118,39 @@ public:
     int length;
     bool found = false;
     int id = 0;
+    std::string baseName;
 
-    BufferedReadResponseBaton(BufferedReadBaton *parent, std::string name, v8::Local<v8::Function> callback_, int id) : BatonBase(name, callback_)
+    BufferedReadResponseBaton(BufferedReadBaton *parent, std::string name, std::string baseName, v8::Local<v8::Function> callback_, int id) 
+        : BatonBase(name, callback_)
     {
         request.data = this;
         this->parent = parent;
         this->id = id;
         this->isSingleResult = true;
+        this->baseName = baseName;
+    }
+
+    void queueNextReader() {
+        // setup next chunk responder
+        // do this here to ensure we're in the active v8 scope
+        BufferedReadResponseBaton* res = new BufferedReadResponseBaton(parent, baseName + "-" + std::to_string(this->id), baseName, Nan::New(callback), this->id+1);
+        res->start();
     }
 
     v8::Local<v8::Function> getCallback() override { 
         if(found) {
-           // setup next chunk responder
-           // do this here to ensure we're in the active v8 scope
-           BufferedReadResponseBaton* res = new BufferedReadResponseBaton(parent, debugName, Nan::New(callback), this->id+1);
-           res->start();
+           this->queueNextReader();
         }
 
         v8::Local<v8::Function> cb;
 
         if(found) {
+            logVerbose("send-buffer");
+            isSingleResult = true;
             cb = Nan::New(parent->onData);
         } else {
+            logVerbose("send-done");
+            isSingleResult = false;
             cb = Nan::New(parent->onDone);
         }
 
@@ -151,9 +162,10 @@ public:
             auto buf = Nan::NewBuffer(buffer, length, [](char *data, void *hint){
                 free(data);
             }, (void*)buffer);
-            
+
             return buf.ToLocalChecked();
         } else {
+            
             return Nan::False();
         }
     }
@@ -179,7 +191,7 @@ public:
             parent->queue.pop();
         }
 
-        logVerbose("done");
+        logVerbose("took-queue-item");
     }
 };
 
@@ -202,7 +214,7 @@ NAN_METHOD(BufferedRead)
     baton->onDone.Reset(done);
     baton->readThreadIsRunning = true;
 
-    auto response = new BufferedReadResponseBaton(baton, "buffered-read-response-baton", cb, 1);
+    BufferedReadResponseBaton* response = new BufferedReadResponseBaton(baton, "buffered-read-response-baton-INITIAL", "buffered-read-response-baton", cb, 1);
 
     std::thread t1(reader, baton);
     t1.detach();
