@@ -1,6 +1,6 @@
 {
   "name": "faster-serialport",
-  "version": "1.7.8",
+  "version": "1.7.10",
   "main": "lib",
   "types": "./lib/index.d.ts",
   "keywords": [
