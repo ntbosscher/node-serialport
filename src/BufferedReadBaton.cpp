@@ -159,9 +159,8 @@ public:
 
     v8::Local<v8::Value> getReturnValue() override {
         if(found) {
-            auto buf = Nan::NewBuffer(buffer, length, [](char *data, void *hint){
-                free(data);
-            }, (void*)buffer);
+            auto buf = Nan::CopyBuffer(buffer, length);
+            free(buffer);
 
             return buf.ToLocalChecked();
         } else {
