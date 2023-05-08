@@ -58,7 +58,7 @@ void reader(BufferedReadBaton* baton) {
             {
                 std::unique_lock<std::mutex> lck(baton->syncMutex);
         
-                strcpy(errorString, baton->errorString);
+                strcpy(baton->errorString, errorString);
                 baton->readThreadIsRunning = false;
 
                 baton->signal.notify_one();
