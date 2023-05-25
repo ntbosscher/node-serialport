@@ -1,6 +1,6 @@
 {
   "name": "faster-serialport",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "main": "lib",
   "types": "./lib/index.d.ts",
   "keywords": [
@@ -12,7 +12,7 @@
     "@serialport/parser-readline": "^9.0.1",
     "debug": "^4.1.1",
     "nan": "2.17.0",
-    "node-bindings": "https://github.com/ntbosscher/node-bindings",
+    "node-bindings": "https://github.com/ntbosscher/node-bindings"
   },
   "devDependencies": {
     "@serialport/binding-mock": "^9.0.2",
